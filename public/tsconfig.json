@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "module": "AMD",
+        "outDir": "../dist/public",
+        "sourceMap": true,
+        "strict": true,
+        "target": "es2017",
+        "moduleResolution": "node"
+    },
+    "compileOnSave": true,
+    "include": [
+        "."
+    ]
+}

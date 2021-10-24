@@ -9,3 +9,4 @@ dist
 *.env
 *.dev
 .DS_Store
+*.sqlite
