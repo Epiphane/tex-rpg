@@ -2,7 +2,7 @@ import { UserInfo } from "engine/models/user";
 
 export class User implements UserInfo {
     id: number;
-    tag?: string;
+    tag: string;
     name?: string;
     level: number;
 
@@ -14,6 +14,6 @@ export class User implements UserInfo {
     }
 
     toString() {
-        return this.name;
+        return this.name ?? this.tag;
     }
 }

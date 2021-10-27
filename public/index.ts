@@ -60,6 +60,10 @@ class Input {
             }
         });
 
+        game.on(ServerResponse.CurrentUser, ({ user }) => {
+            this.insertAttachment(new A.Small(`Welcome back, ${user.tag}.`));
+        })
+
         this.setupAutoComplete();
     }
 
@@ -133,7 +137,7 @@ class Input {
     update() {
         this.value = this.data.value;
 
-        let display = this.value.toUpperCase();
+        let display = this.value;
         if (this.isPassword) {
             display = (new Array(this.value.length + 1)).join('*');
         }
@@ -209,7 +213,7 @@ class Input {
         const record = document.createElement('div');
         record.classList.add('record');
 
-        let command = this.value.toUpperCase();
+        let command = this.value;
         if (this.isPassword) {
             command = (new Array(command.length + 1)).join('*');
         }
@@ -220,8 +224,13 @@ class Input {
         // Set password to false if we're not confirming a password
         this.setPassword(this.confirm && this.isPassword);
 
-        if (command === 'LOGOUT' || command === 'QUIT') {
+        if (['logout', 'quit'].indexOf(command.toLowerCase()) >= 0) {
             this.game.logout();
+        }
+        else if (['clear'].indexOf(command.toLowerCase()) >= 0) {
+            while (history.firstChild) {
+                history.removeChild(history.firstChild);
+            }
         }
         else if (this.confirm && !this.confirmCheck) {
             this.confirmCheck = this.value;

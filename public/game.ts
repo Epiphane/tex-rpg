@@ -21,6 +21,7 @@ export class Game {
             }
             else {
                 localStorage.removeItem('token');
+                this.user = undefined;
             }
         });
 

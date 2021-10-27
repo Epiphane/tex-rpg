@@ -83,6 +83,10 @@ item {
   margin-bottom: 20px;
 }
 
+#input {
+  position: relative;
+}
+
 /* #input .dropdown-menu {
   margin-left: -48px;
   list-style-type: none;

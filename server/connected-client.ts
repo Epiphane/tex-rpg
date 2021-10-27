@@ -5,10 +5,14 @@ import { WebSocket } from 'ws';
 import * as jwt from 'jsonwebtoken';
 import environment from './environment';
 import User, { UserInfo } from '../engine/models/user';
+import actions from '../engine/actions';
 
 type UserToken = UserInfo & jwt.JwtPayload;
 
 export class ConnectedClient {
+    user?: User;
+    channel?: string;
+
     constructor(
         private readonly socket: WebSocket,
         onCloseCallback: (client: ConnectedClient) => void,
@@ -26,7 +30,7 @@ export class ConnectedClient {
             }
         });
 
-        socket.on('close', onCloseCallback.bind(this, this));
+        socket.on('close', () => onCloseCallback(this));
     }
 
     send(payload: ServerResponse) {
@@ -82,6 +86,7 @@ export class ConnectedClient {
                 })
             )
             .then(user => {
+                this.user = user ?? undefined;
                 if (!user) {
                     throw new Error(`Unexpected error, code=0201`);
                 }
@@ -118,15 +123,28 @@ export class ConnectedClient {
         });
     }
 
-    OnSetChannel(payload: ClientAction.SetChannel) {
-
+    OnSetChannel({ channel }: ClientAction.SetChannel) {
+        this.channel = channel;
     }
 
     OnLookup(payload: ClientAction.Lookup) {
 
     }
 
-    OnCommand(payload: ClientAction.Command) {
+    OnCommand({ command }: ClientAction.Command) {
+        const [action, ...args] = command.split(' ');
 
+        if (actions[action]) {
+            const result = actions[action](args, this.user, this.channel);
+            Promise.resolve(result)
+                .then(output => this.send(new Attach(output)))
+                .catch(err => this.send(new Attach(new A.Error(`Error: ${err}`))));
+        }
+        else {
+            this.send(new Attach(new A.Warning([
+                `'${action}' is not an available action.`,
+                `Type \`${A.Pasta('help', true)}\` for the list of available actions.`
+            ])))
+        }
     }
 }

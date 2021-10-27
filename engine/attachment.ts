@@ -47,6 +47,12 @@ export class Small extends Attachment {
     }
 }
 
+export class Warning extends Attachment {
+    constructor(text: string | string[]) {
+        super(text, 'Warning');
+    }
+}
+
 export class Error extends Attachment {
     constructor(text: string | string[]) {
         super(text, 'Error');

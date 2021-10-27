@@ -3,7 +3,7 @@ import * as crypto from 'crypto';
 
 export interface UserInfo {
     id: number;
-    tag?: string;
+    tag: string;
     name?: string;
     level: number;
 }
@@ -25,13 +25,13 @@ export default class User extends Model {
             isEmail: true
         }
     })
-    email?: string;
+    email!: string;
 
     @Column({
         type: DataType.STRING,
         allowNull: false
     })
-    password?: string;
+    password!: string;
 
     @Column(DataType.STRING)
     salt?: string;
@@ -41,7 +41,7 @@ export default class User extends Model {
         allowNull: false,
         unique: true,
     })
-    tag?: string;
+    tag!: string;
 
     @Column(DataType.STRING)
     displayName?: string;
@@ -104,9 +104,7 @@ export default class User extends Model {
     };
 
     encryptPassword(password: string) {
-        if (!password || !this.salt) {
-            return;
-        }
+        this.salt = this.salt ?? this.makeSalt();
 
         return crypto.pbkdf2Sync(
             password,
