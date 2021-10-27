@@ -154,18 +154,19 @@ item {
 }
 
 #input-display .selection {
-  animation: blink-underline 2s step-end infinite;
-  -webkit-animation: blink-underline 2s step-end infinite;
+  animation: blink-underline 2s steps(2, end) infinite;
+  -webkit-animation: blink-underline 2s steps(2, end) infinite;
 }
 
 #input-display .selection.replacing {
   color: rgb(83, 128, 0);
+  text-decoration: underline!important;
 }
 
 #input-cursor {
   position: absolute;
-  animation: blink 2s step-end infinite;
-  -webkit-animation: blink 2s step-end infinite;
+  animation: blink 2s steps(2, end) infinite;
+  -webkit-animation: blink 2s steps(2, end) infinite;
 }
 
 .attachment {
@@ -177,9 +178,9 @@ item {
 
 .attachment.small {
   border: none;
-  font-size: 16px;
-  padding: 2px;
-  padding-left: 32px;
+  padding-left: 24px;
+  padding-bottom: 0;
+  margin-bottom: 10px!important;
 }
 
 .attachment.info {
@@ -203,7 +204,7 @@ item {
 
 @keyframes blink {
   0% {opacity: 1;}
-	50% {opacity: 0;}
+  50% {opacity: 0;}
 }
 @-webkit-keyframes blink {
   0% {opacity: 1;}
@@ -212,7 +213,7 @@ item {
 
 @keyframes blink-underline {
   0% {text-decoration: underline;}
-	50% {text-decoration: none;}
+  50% {text-decoration: none;}
 }
 @-webkit-keyframes blink-underline {
   0% {text-decoration: underline;}
@@ -228,10 +229,4 @@ textarea::-webkit-input-placeholder {
 
 body {
   font-size: 22px;
-}
-
-.attachment.small {
-  padding-left: 28px;
-  font-size: 12px;
-  padding-bottom: 5px;
 }

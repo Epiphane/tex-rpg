@@ -9,7 +9,7 @@ router.use(requireLogin);
 
 router.use('/users', UsersRouter);
 router.get('/', async (req, res) => {
-    res.write(`Hi there ${req.user.username}!\nReady to have some fun?\n\n`);
+    res.write(`Hi there ${req.user.displayName}!\nReady to have some fun?\n\n`);
     res.end();
 });
 

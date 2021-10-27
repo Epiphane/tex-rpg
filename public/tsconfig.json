@@ -5,10 +5,19 @@
         "sourceMap": true,
         "strict": true,
         "target": "es2017",
-        "moduleResolution": "node"
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "moduleResolution": "node",
+        "baseUrl": ".",
+        "paths": {
+            "engine/*": [
+                "../engine/*"
+            ],
+        },
     },
     "compileOnSave": true,
     "include": [
-        "."
+        ".",
+        "../engine"
     ]
 }

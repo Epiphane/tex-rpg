@@ -1,3 +1,4 @@
+import { Secret } from "jsonwebtoken";
 import path = require("path/posix");
 import { SequelizeOptions } from "sequelize-typescript";
 
@@ -13,6 +14,7 @@ export interface Environment {
     seedDB: boolean;
     allowCaching: boolean;
     sequelize: SequelizeOptions & { uri: string };
+    jwtSecret: Secret;
 }
 
 const name = (process.env.NODE_ENV ?? 'test') as EnvironmentName;

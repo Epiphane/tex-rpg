@@ -14,6 +14,9 @@ module.exports = {
         ],
     },
     resolve: {
+        alias: {
+            engine: path.resolve(__dirname, 'engine/')
+        },
         extensions: ['.tsx', '.ts', '.js'],
     },
     output: {

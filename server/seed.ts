@@ -1,5 +1,5 @@
-import User from "./models/user"
-import { sequelize } from "./sequelize"
+import User from '../engine/models/user';
+import { sequelize } from './sqldb';
 
 export function SeedDB() {
     return sequelize
@@ -7,10 +7,14 @@ export function SeedDB() {
         .then(() =>
             User.bulkCreate([
                 {
-                    username: 'thomas',
+                    tag: 'thomas',
+                    email: 'exyphnos@gmail.com',
+                    password: 'thomas',
                 },
                 {
-                    username: 'steinke',
+                    tag: 'steinke',
+                    email: 'kokoman87@gmail.com',
+                    password: 'thomas',
                 }
             ])
         )

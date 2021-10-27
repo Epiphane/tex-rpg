@@ -3,7 +3,7 @@
         "module": "commonjs",
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        "outDir": "../dist",
+        "outDir": "../dist/engine",
         "sourceMap": true,
         "strict": true,
         "target": "es2017",
@@ -11,6 +11,5 @@
     "compileOnSave": true,
     "include": [
         ".",
-        "../engine",
     ]
 }

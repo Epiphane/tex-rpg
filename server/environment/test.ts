@@ -17,4 +17,5 @@ export default {
 
     seedDB: true,
     allowCaching: false,
+    jwtSecret: 'test',
 } as Partial<Environment>;

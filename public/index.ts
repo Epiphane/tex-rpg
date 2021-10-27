@@ -1,88 +1,16 @@
-import { AError, ASmall } from "./attachments";
+import * as A from "engine/attachment";
+import * as Action from "engine/client-actions";
+import * as ServerResponse from "engine/server-actions";
 import { Game } from "./game";
 import { User } from "./user";
 import { Textcomplete } from "@textcomplete/core";
 import { TextareaEditor } from "@textcomplete/textarea";
-import { textChangeRangeIsUnchanged } from "typescript";
-
-const socket = new WebSocket('ws://localhost:8081');
-socket.addEventListener('close', () => {
-    window.location.reload();
-});
-
-const game = new Game(socket);
-
-const specialKeys: { [key: number]: string } = {
-    13: 'enter',
-    37: 'left',
-    38: 'up',
-    39: 'right',
-    40: 'down'
-};
-
-let replaced = false;
-const command = document.getElementById('command') as HTMLTextAreaElement;
-const editor = new TextareaEditor(command);
-
-// Don't gotta clean this up cause it never goes away~
-const textcomplete = new Textcomplete(editor, [
-    {
-        match: /\B@(\w*)$/,
-        search: (term: string, callback: (results: User[]) => void) => {
-            term = term.toLowerCase();
-            game.autocomplete(term, callback);
-        },
-        index: 1,
-        replace: (mention: string) => {
-            console.log(mention);
-            replaced = true;
-            return '@' + mention + ' ';
-        }
-    }
-], {
-    dropdown: {
-        header: (results: unknown[]) => "",
-        footer: (results: unknown[]) => "",
-    }
-})
-
-command.onblur = () => command.focus();
-command.focus();
-
-command.oninput =
-    command.onkeydown =
-    command.onkeyup =
-    command.onmousedown =
-    command.onmouseup =
-    command.onmousemove = () => input.update();
-
-document.onkeydown = (e: KeyboardEvent) => {
-    const keyCode = e.keyCode;
-
-    if (specialKeys[keyCode]) {
-        var key = specialKeys[keyCode];
-
-        const dropdown = document.getElementsByClassName('textcomplete-dropdown');
-        const dropdownVisible = (dropdown.length > 0 && (dropdown[0] as HTMLElement).style.display !== 'none');
-
-        if ((input as any)[key] && !dropdownVisible) {
-            if (replaced) {
-                replaced = false;
-                return false;
-            }
-
-            (input as any)[key]();
-
-            return false;
-        }
-    }
-};
 
 const content = document.getElementById('content')!;
 const history = document.getElementById('history')!;
 
 class Input {
-    data = command;
+    data = document.getElementById('command') as HTMLTextAreaElement;
     div = document.getElementById('input-display');
     value = '';
     isPassword = false;
@@ -93,15 +21,124 @@ class Input {
     log: string[] = [];
     logIndex = 0;
 
+    pendingEmail?: string;
+
+    wasLoggedIn = false;
+    triedToAuth = false;
+
+    constructor(
+        private readonly game: Game
+    ) {
+        game.on(ServerResponse.Attach, ({ attachments }) => {
+            attachments.forEach(this.insertAttachment.bind(this));
+        });
+
+        this.wasLoggedIn = game.isLoggedIn();
+        this.triedToAuth = false;
+        game.on(ServerResponse.Token, ({ token }) => {
+            if (token) {
+                this.insertAttachment(new A.Small('Login successful.'));
+                this.wasLoggedIn = true;
+            }
+            else {
+                let logoutAttachment: A.Attachment;
+                if (this.wasLoggedIn) {
+                    logoutAttachment = new A.Info('You have been logged out.');
+                    this.wasLoggedIn = false;
+                }
+                else if (this.triedToAuth) {
+                    logoutAttachment = new A.Error('Authentication failed.');
+                    this.triedToAuth = false;
+                }
+                else {
+                    logoutAttachment = new A.Info('You are not logged in.');
+                }
+                this.insertAttachments([
+                    logoutAttachment,
+                    new A.Small('Enter your email to log in:'),
+                ]);
+            }
+        });
+
+        this.setupAutoComplete();
+    }
+
+    setupAutoComplete() {
+        const specialKeys: { [key: number]: string } = {
+            13: 'enter',
+            37: 'left',
+            38: 'up',
+            39: 'right',
+            40: 'down'
+        };
+
+        let replaced = false;
+        const editor = new TextareaEditor(this.data);
+
+        // Don't gotta clean this up cause it never goes away~
+        const textcomplete = new Textcomplete(editor, [
+            {
+                match: /\B@(\w{2+})$/,
+                search: (term: string, callback: (results: User[]) => void) => {
+                    term = term.toLowerCase();
+                    this.game.autocomplete(term, callback);
+                },
+                index: 1,
+                replace: (mention: string) => {
+                    console.log(mention);
+                    replaced = true;
+                    return '@' + mention + ' ';
+                }
+            }
+        ], {
+            dropdown: {
+                header: (results: unknown[]) => "",
+                footer: (results: unknown[]) => "",
+            }
+        })
+
+        this.data.onblur = () => this.data.focus();
+        this.data.focus();
+
+        this.data.oninput =
+            this.data.onkeydown =
+            this.data.onkeyup =
+            this.data.onmousedown =
+            this.data.onmouseup =
+            this.data.onmousemove = () => this.update();
+
+        document.onkeydown = (e: KeyboardEvent) => {
+            const keyCode = e.keyCode;
+
+            if (specialKeys[keyCode]) {
+                var key = specialKeys[keyCode];
+
+                const dropdown = document.getElementsByClassName('textcomplete-dropdown');
+                const dropdownVisible = (dropdown.length > 0 && (dropdown[0] as HTMLElement).style.display !== 'none');
+
+                if ((this as any)[key] && !dropdownVisible) {
+                    if (replaced) {
+                        replaced = false;
+                        return false;
+                    }
+
+                    (this as any)[key]();
+
+                    return false;
+                }
+            }
+        };
+    }
+
     update() {
-        this.value = command.value;
+        this.value = this.data.value;
 
         let display = this.value.toUpperCase();
         if (this.isPassword) {
             display = (new Array(this.value.length + 1)).join('*');
         }
 
-        const { selectionStart, selectionEnd } = command;
+        const { selectionStart, selectionEnd } = this.data;
 
         let before, between, after;
         let replacing = '';
@@ -125,11 +162,11 @@ class Input {
         before = before.replace(/ /g, '&nbsp;');
         after = after.replace(/ /g, '&nbsp;');
         this.div!.innerHTML = `${before}<span class="selection ${replacing}">${between}</span>${after}`;
-        this.div!.scrollLeft = command!.scrollLeft;
+        this.div!.scrollLeft = this.data!.scrollLeft;
     }
 
     set(str: string) {
-        command.value = str;
+        this.data.value = str;
         this.update();
     };
 
@@ -180,37 +217,44 @@ class Input {
         record.innerHTML = `> ${command}`;
         history.appendChild(record);
 
-        // Set password to false if we're not confirm a password
+        // Set password to false if we're not confirming a password
         this.setPassword(this.confirm && this.isPassword);
 
-        if (command === 'logout' || command === 'quit') {
-            game.logout();
-        }
-        else if (!this.confirm) {
-            game.send({
-                action: 'Command',
-                command: this.value,
-            });
+        if (command === 'LOGOUT' || command === 'QUIT') {
+            this.game.logout();
         }
         else if (this.confirm && !this.confirmCheck) {
             this.confirmCheck = this.value;
-            this.insertAttachment(new ASmall('Please enter it again to confirm.'));
+            this.insertAttachment(new A.Small('Please enter it again to confirm.'));
         }
         else if (this.confirm && this.confirmCheck) {
             if (this.value === this.confirmCheck) {
-                game.send({
-                    action: 'Command',
-                    command: this.value
-                });
+                this.game.send(new Action.Command(this.value));
                 this.setPassword(false);
                 this.confirm = false;
             }
             else {
-                this.insertAttachment(new AError('Entries did not match. Please try again'));
+                this.insertAttachment(new A.Error('Entries did not match. Please try again'));
 
                 this.confirm = true;
                 this.setPassword(true);
             }
+        }
+        else if (!this.game.isLoggedIn()) {
+            if (!this.pendingEmail) {
+                this.pendingEmail = this.value;
+
+                this.insertAttachment(new A.Small('Password:'));
+                this.setPassword(true);
+            }
+            else {
+                this.triedToAuth = true;
+                this.game.send(new Action.Login(this.pendingEmail, this.value));
+                this.pendingEmail = undefined;
+            }
+        }
+        else if (!this.confirm) {
+            this.game.send(new Action.Command(this.value));
         }
 
         // Update mentions
@@ -222,81 +266,90 @@ class Input {
 
     setPassword(isPassword: boolean) {
         this.isPassword = isPassword;
-        (command as any).type = this.isPassword ? 'password' : 'text';
+        (this.data as any).type = this.isPassword ? 'password' : 'text';
     };
 
     setConfirm(confirm: boolean) {
         this.confirm = confirm;
     };
 
-    insertAttachment(attachment: any) {
-        // var element = $('<div class="attachment ' + (attachment.type || 'info') + '">');
+    insertAttachment(attachment: A.Attachment) {
+        const { text, type } = attachment;
 
-        // attachment.md_text = attachment.md_text || attachment.text;
-        // if (!Array.isArray(attachment.md_text)) {
-        //     attachment.md_text = [attachment.md_text];
-        // }
-        // attachment.md_text = attachment.md_text
-        //     .join('<br />')
-        //     .replace(/<#([0-9]+)>/g, function (tag, id) {
-        //         return '<span class="user-tag user-' + id + '">' + Game.lookup(tag) + '</span>'
-        //     })
-        //     .replace(/`(.*?)`/g, '<code>$1</code>')
-        //     .replace(/\|\[(.*?)\](.*?)\|/g, function (string, cmd, text) {
-        //         if (!text) {
-        //             return '<span class="copypasta execute">' + cmd + '</span>';
-        //         }
-        //         return '<span class="copypasta execute" pasta="' + cmd + '">' + text + '</span>'
-        //     })
-        //     .replace(/\|(.*?)\|/g, '<span class="copypasta">$1</span>');
-        // element.html(attachment.md_text);
+        const element = document.createElement('div');
+        element.classList.add('attachment', type);
 
-        // element.insertBefore(this.div);
+        element.innerHTML = text
+            .join('<br />')
+            .replace(/<#([0-9]+)>/g, (tag, id) =>
+                '<span class="user-tag user-' + id + '">' + this.game.lookup(tag) + '</span>'
+            )
+            .replace(/`(.*?)`/g, '<code>$1</code>')
+            .replace(/\|\[(.*?)\](.*?)\|/g, (_, cmd, text) =>
+                text
+                    ? '<span class="copypasta execute" pasta="' + cmd + '">' + text + '</span>'
+                    : '<span class="copypasta execute">' + cmd + '</span>'
+            )
+            .replace(/\|(.*?)\|/g, '<span class="copypasta">$1</span>');
 
-        // element.find('.copypasta').on('click', function () {
-        //     var pasta = $(this).text().toUpperCase();
-        //     var prefix = $(this).attr('pasta');
-        //     if (prefix) {
-        //         pasta = prefix + ' ' + pasta;
-        //     }
+        history.appendChild(element);
 
-        //     if ($(this).hasClass('execute')) {
-        //         Input.set(pasta);
-        //         Input.enter();
-        //     }
-        //     else {
-        //         if (Input.str.length && Input.str[Input.str.length - 1] !== ' ') {
-        //             pasta = ' ' + pasta;
-        //         }
+        const pastas = element.getElementsByClassName('copypasta');
+        for (let i = 0; i < pastas.length; i++) {
+            const pasta = pastas[i] as HTMLElement;
 
-        //         Input.add(pasta);
-        //     }
-        // });
+            pasta.onclick = () => {
+                const text = pasta.textContent ?? '';
+                const command = pasta.getAttribute('pasta');
 
-        // window.scrollTo(0, document.body.scrollHeight);
+                const content = command ?? text;
+                if (pasta.classList.contains('execute')) {
+                    this.set(content);
+                    this.enter();
+                }
+                else {
+                    if (this.value.length > 0 && this.value[this.value.length - 1] !== ' ') {
+                        this.add(` ${content}`);
+                    }
+                    else {
+                        this.add(content);
+                    }
+                }
+            };
+        };
+
+        window.scrollTo(0, document.body.scrollHeight);
     };
 
-    insertAttachments(attachments: any) {
-        // while (attachments.length) {
-        //     Input.insertAttachment(attachments.shift());
-        // }
+    insertAttachments(attachments: A.Attachment[]) {
+        attachments.forEach(attach => this.insertAttachment(attach));
     }
 };
 
-const input = new Input();
+{
+    const game = new Game();
+    const input = new Input(game);
 
-// socket.on('attachment', function (attachment) {
-//     input.insertAttachment(attachment);
-// });
+    // socket.on('attachment', function (attachment) {
+    //     input.insertAttachment(attachment);
+    // });
 
-// socket.on('attachments', function (attachments) {
-//     input.insertAttachments(attachments);
-// });
+    // socket.on('attachments', function (attachments) {
+    //     input.insertAttachments(attachments);
+    // });
 
-// socket.on('password', function () {
-//     input.setPassword(true);
-// });
+    // socket.on('password', function () {
+    //     input.setPassword(true);
+    // });
 
-// socket.on('confirm', function () {
-//     input.setConfirm(true);
-// });
+    // socket.on('confirm', function () {
+    //     input.setConfirm(true);
+    // });
+
+    // Connect
+    const socket = new WebSocket('ws://localhost:8080');
+    socket.addEventListener('close', () => {
+        window.location.reload();
+    });
+    game.setSocket(socket);
+}

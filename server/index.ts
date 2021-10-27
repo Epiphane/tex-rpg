@@ -6,6 +6,7 @@ import environment from './environment';
 import apiRouter from './api';
 import { SeedDB } from './seed';
 import { Server as WebSocketServer } from 'ws';
+import { ConnectedClient } from './connected-client';
 
 if (environment.seedDB) {
     SeedDB();
@@ -29,17 +30,27 @@ app.use(bodyParser.urlencoded());
 app.use(cookieParser());
 app.use('/api', apiRouter);
 
-const wss = new WebSocketServer({
-    port: 8081,
+const port = process.env.PORT || 8080;
+const server = app.listen(port, () => {
+    console.log(`Listening on port ${port}`);
 });
+
+const wss = new WebSocketServer({
+    server,
+});
+
+const connections: ConnectedClient[] = [];
+
+const removeConnection = (client: ConnectedClient) => {
+    for (let i = 0; i < connections.length; i++) {
+        if (connections[i] === client) {
+            connections.splice(i, 1);
+            i--;
+        }
+    }
+};
 
 wss.on('connection', socket => {
-    socket.on('message', message => {
-        console.log(JSON.parse(message.toString()));
-    });
-});
-
-const port = process.env.PORT || 8080;
-app.listen(port, () => {
-    console.log(`Listening on port ${port}`);
+    const client = new ConnectedClient(socket, removeConnection);
+    connections.push(client);
 });

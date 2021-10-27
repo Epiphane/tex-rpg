@@ -1,7 +1,7 @@
 import * as express from 'express';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Writable } from 'stream';
-import User from '../models/user';
+import User from '../../engine/models/user';
 
 const router = express.Router();
 
