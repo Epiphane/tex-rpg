@@ -5,7 +5,8 @@ import { Environment } from ".";
 export default {
     sequelize: {
         uri: 'sqlite://',
-        logging: false,
+        storage: 'test.sqlite',
+        // logging: false,
         options: {
             storage: 'test.sqlite',
             define: {

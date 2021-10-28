@@ -1,6 +1,10 @@
-import { Column, DataType, Model, PrimaryKey, Table, BeforeBulkCreate, BeforeCreate, BeforeUpdate } from "sequelize-typescript";
+import { Column, DataType, Model, PrimaryKey, Table, BeforeBulkCreate, BeforeCreate, BeforeUpdate, BelongsTo, HasMany, BelongsToMany } from "sequelize-typescript";
+import { BelongsToManyGetAssociationsMixin } from "sequelize/types";
 import * as crypto from 'crypto';
 import Alias from "./alias";
+import Item from "./item";
+import Fight from "./fight";
+import Fighting from "./fighting";
 
 export interface UserInfo {
     id: number;
@@ -38,9 +42,38 @@ export default class User extends Model {
     @Column(DataType.STRING)
     salt?: string;
 
+    @Column({
+        type: DataType.BOOLEAN,
+        defaultValue: false
+    })
+    AI: boolean = false;
+
+    @HasMany(() => Alias, 'userId')
+    aliases?: Alias[];
+
     @Column(DataType.INTEGER)
     level: number = 1;
 
+    @BelongsTo(() => Item, 'weaponId')
+    weapon?: Item;
+
+    @BelongsTo(() => Item, 'armorId')
+    armor?: Item;
+
+    @HasMany(() => Item, {
+        foreignKey: 'userId',
+        constraints: false
+    })
+    items?: Item[];
+
+    @BelongsToMany(() => Fight, () => Fighting, 'userId', 'fightId')
+    fights?: Fight[];
+    Fighting?: Fighting;
+
+    // Association methods
+    getFights!: BelongsToManyGetAssociationsMixin<Fight>;
+
+    // Getters
     get tag() {
         return this.alias.tag;
     }

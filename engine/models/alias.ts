@@ -1,4 +1,5 @@
-import { Column, DataType, Model, Table } from "sequelize-typescript";
+import { BelongsTo, Column, DataType, Model, Table } from "sequelize-typescript";
+import User from "./user";
 
 @Table
 export default class Alias extends Model {
@@ -10,11 +11,16 @@ export default class Alias extends Model {
     zoneId!: string;
 
     @Column({
-        type: DataType.STRING,
+        type: DataType.INTEGER,
         allowNull: false,
         primaryKey: true
     })
-    userId!: string;
+    userId!: number
+
+    @BelongsTo(() => User, {
+        foreignKey: 'userId',
+    })
+    user?: User;
 
     @Column(DataType.STRING)
     slackUserId?: string;

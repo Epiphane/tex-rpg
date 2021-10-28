@@ -1,58 +1,42 @@
 import { ActionOutput } from ".";
 import { Good, Info, Pasta } from "../attachment";
+import { FightController } from "../controller/fight";
 import User from "../models/user";
-import { CurrentUser } from "../server-actions";
+import { Attach, CurrentUser } from "../server-actions";
 
-export function status(args: string[], user: User, channel: string): ActionOutput {
+export function status(args: string[], user: User, channel: string) {
     const [subcommand] = args;
     if (subcommand === 'help') {
         return new Info([
-            '`|[status]|` : your level, experience, etc',
-            '`|[status help]|` : this dialog',
-            '`|[status moves]|` : your moves',
-            '`|[status items]|` : your items',
+            `\`${Pasta('status', true)}\` : your level, experience, etc`,
+            `\`${Pasta('status help', true)}\` : this dialog`,
+            `\`${Pasta('status moves', true)}\` : your moves`,
+            `\`${Pasta('status items', true)}\` : your items`,
         ]);
     }
     else if (subcommand === 'items' || subcommand === 'moves') {
         return items(args, user, channel);
     }
 
-    return new Info('idk');
-
-    /*
-    return FightController.findFight(user, channel_id, true).then(function (fight) {
+    return FightController.FindFight(user, channel, true).then(fight => {
         if (fight) {
-            var fighting = fight.fighting;
-            var opponents = fight.opponents;
+            const { health } = fight.Fighting!;
+            const [opponent] = fight.opponents;
 
-            return {
-                level: user.level,
-                fight: {
-                    length: fight.length,
-                    health: fighting.health,
-                    opponents: opponents
-                },
-                md_text: [
-                    'Status update for user ' + user.tag + ' (' + fighting.health + ' health)',
-                    'Currently fighting ' + opponents[0].tag + ' (' + opponents[0].fighting.health + ' health)',
-                    'Type `|[status help]|` for more options'
-                ]
-            }
+            return new Info([
+                `Status update for user ${user.tag} (${health} health)`,
+                `Currently fighting ${opponent.tag} (${opponent.Fighting?.health} health)`,
+                `Type \`${Pasta('status help', true)}\` for more options`,
+            ]);
         }
         else {
-            return {
-                level: user.level,
-                experience: user.experience,
-                md_text: [
-                    'Status update for user ' + user.tag + ':',
-                    'Level: ' + user.level,
-                    'Experience: ' + user.experience,
-                    'Type `|[status help]|` for more options'
-                ]
-            }
+            return new Info([
+                `Status update for user ${user.tag}:`,
+                `Level: ${user.level}`,
+                `Type \`${Pasta('status help', true)}\` for more options`,
+            ]);
         }
-    })
-    */
+    });
 };
 
 export function name([name]: string[], user: User, channel: string) {
