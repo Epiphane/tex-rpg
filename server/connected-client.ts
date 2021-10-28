@@ -5,13 +5,15 @@ import { WebSocket } from 'ws';
 import * as jwt from 'jsonwebtoken';
 import environment from './environment';
 import User, { UserInfo } from '../engine/models/user';
-import actions from '../engine/actions';
+import { Actions } from '../engine/actions';
+import { UserController } from '../engine/controller/user';
 
 type UserToken = UserInfo & jwt.JwtPayload;
 
 export class ConnectedClient {
     user?: User;
-    channel?: string;
+    zone?: string;
+    channel: string = 'MAIN';
 
     constructor(
         private readonly socket: WebSocket,
@@ -33,7 +35,7 @@ export class ConnectedClient {
         socket.on('close', () => onCloseCallback(this));
     }
 
-    send(payload: ServerResponse) {
+    send(payload: ServerResponse | ServerResponse[]) {
         this.socket.send(JSON.stringify(payload));
     }
 
@@ -43,6 +45,9 @@ export class ConnectedClient {
         }
         else if (payload.action === 'Login') {
             this.OnLogin(payload as ClientAction.Login);
+        }
+        else if (payload.action === 'SetZone') {
+            this.OnSetZone(payload as ClientAction.SetZone);
         }
         else if (payload.action === 'SetChannel') {
             this.OnSetChannel(payload as ClientAction.SetChannel);
@@ -78,22 +83,21 @@ export class ConnectedClient {
                 return token;
             })
             .then(token =>
-                User.findOne({
-                    where: {
-                        id: token.id,
-                        email: token.sub,
-                    }
-                })
+                UserController.FindByEmail(token.sub!, token.zoneId)
+                    .then(user => {
+                        if (!user) {
+                            throw new Error(`Unexpected error, code=0201`);
+                        }
+                        else if (user.id !== token.id) {
+                            throw new Error(`Unexpected error, code=0202`);
+                        }
+                        return user;
+                    })
             )
             .then(user => {
-                this.user = user ?? undefined;
-                if (!user) {
-                    throw new Error(`Unexpected error, code=0201`);
-                }
-                else {
-                    // Valid login!
-                    this.send(new CurrentUser(user.format()));
-                }
+                // Valid login!
+                this.user = user;
+                this.send(new CurrentUser(user));
             })
             .catch(err => {
                 this.send(new Attach(new A.Error(`Error refreshing token: \`${err}\``)));
@@ -102,11 +106,12 @@ export class ConnectedClient {
     }
 
     OnLogin({ email, password }: ClientAction.Login) {
-        User.findOne({
-            where: {
-                email: email
-            }
-        }).then(user => {
+        if (!this.zone) {
+            this.send(new Attach(new A.Error(`No game zone specified, please reload.`)));
+            return;
+        }
+
+        UserController.FindByEmail(email, this.zone).then(user => {
             if (!user || !user.authenticate(password)) {
                 this.send(new Token());
             }
@@ -123,6 +128,10 @@ export class ConnectedClient {
         });
     }
 
+    OnSetZone({ zone }: ClientAction.SetZone) {
+        this.zone = zone;
+    }
+
     OnSetChannel({ channel }: ClientAction.SetChannel) {
         this.channel = channel;
     }
@@ -134,11 +143,20 @@ export class ConnectedClient {
     OnCommand({ command }: ClientAction.Command) {
         const [action, ...args] = command.split(' ');
 
-        if (actions[action]) {
-            const result = actions[action](args, this.user, this.channel);
-            Promise.resolve(result)
-                .then(output => this.send(new Attach(output)))
-                .catch(err => this.send(new Attach(new A.Error(`Error: ${err}`))));
+        if (Actions[action]) {
+            try {
+                const result = Actions[action](args, this.user, this.channel);
+                Promise.resolve(result)
+                    .then(output => (output instanceof Array) ? output : [output])
+                    .then(outputs =>
+                        outputs.map(output => (output instanceof A.Attachment) ? new Attach(output) : output)
+                    )
+                    .then(result => this.send(result))
+                    .catch(err => this.send(new Attach(new A.Error(`Error: ${err}`))));
+            }
+            catch (e: any) {
+                this.send(new Attach(new A.Error(`${e}`)));
+            }
         }
         else {
             this.send(new Attach(new A.Warning([

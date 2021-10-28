@@ -17,6 +17,13 @@ export class Login implements ClientAction {
     ) { }
 }
 
+export class SetZone implements ClientAction {
+    action = 'SetZone';
+    constructor(
+        public zone: string
+    ) { }
+}
+
 export class SetChannel implements ClientAction {
     action = 'SetChannel';
     constructor(

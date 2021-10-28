@@ -1,4 +1,4 @@
-import { UserInfo } from "./models/user";
+import User, { UserInfo } from "./models/user";
 import { Attachment } from './attachment';
 
 export default interface ServerResponse {
@@ -7,8 +7,11 @@ export default interface ServerResponse {
 
 export class CurrentUser implements ServerResponse {
     action = 'CurrentUser';
+    user: UserInfo;
 
-    constructor(public user: UserInfo) { }
+    constructor(user: User) {
+        this.user = user.format();
+    }
 }
 
 export class Lookup implements ServerResponse {

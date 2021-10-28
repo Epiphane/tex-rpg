@@ -1,6 +1,6 @@
 import { Attachment, Info } from "../attachment";
 
-export function help(): Attachment {
+export function help() {
     return new Info([
         '`|name |NAME` : Change your name',
         '`|fight |@XXX` : Pick a fight with @XXX',

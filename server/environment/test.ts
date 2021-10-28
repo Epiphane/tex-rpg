@@ -7,7 +7,6 @@ export default {
         uri: 'sqlite://',
         logging: false,
         options: {
-            logging: false,
             storage: 'test.sqlite',
             define: {
                 timestamps: false,

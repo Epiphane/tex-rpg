@@ -3,14 +3,13 @@ export function Pasta(
     autoSubmit?: boolean,
     visibleString?: string,
 ) {
+    const prefix = autoSubmit ? `[${command}]` : `]${command}[`;
+
     if (visibleString) {
-        return `|[${command}]${visibleString}|`;
-    }
-    else if (autoSubmit) {
-        return `|[${command}]|`;
+        return `|${prefix}${visibleString}|`;
     }
     else {
-        return `|${command}|`;
+        return `|${prefix}|`;
     }
 }
 

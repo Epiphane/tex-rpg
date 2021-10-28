@@ -41,7 +41,10 @@ export class Game {
                 console.warn(`Received non-JSON message: '${data}'`);
             }
 
-            if (payload) {
+            if (payload instanceof Array) {
+                payload.forEach(obj => this.recv(obj));
+            }
+            else {
                 this.recv(payload);
             }
         }
@@ -51,6 +54,8 @@ export class Game {
             socket.onopen = null;
 
             this.users = [];
+
+            this.send(new ClientAction.SetZone('WEBAPP'));
 
             if (this.token) {
                 this.send(new ClientAction.Token(this.token));
@@ -99,6 +104,7 @@ export class Game {
     }
 
     recv(payload: ServerResponse.default) {
+        console.log(payload);
         const listeners = this.listeners[payload.action];
         if (listeners && listeners.length > 0) {
             for (let i = 0; i < listeners.length; i++) {
@@ -124,7 +130,31 @@ export class Game {
     }
 
     lookup(tag: string) {
-        return tag;
+        if (this.user && tag === this.user.tag && this.user.name) return this.user.name;
+
+        const match = tag.match(/<#(.*?)>/);
+        if (!match) {
+            return tag;
+        }
+
+        const [userId] = match;
+        if (!userId) {
+            return tag;
+        }
+        else {
+            // TODO lookup known users
+            return tag;
+            // var ndx = indexOf(parseInt(userId, 10));
+
+            // if (ndx < 0) {
+            //     socket.emit('lookup', '#' + userId, function (user) {
+            //         addUser(user);
+            //     });
+            //     return '[User ' + userId + ']';
+            // }
+
+            // return '@' + users[ndx].name;
+        }
     }
 
     autocomplete(name: string, callback: ((names: User[]) => void)) {

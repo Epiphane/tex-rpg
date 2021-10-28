@@ -62,7 +62,16 @@ class Input {
 
         game.on(ServerResponse.CurrentUser, ({ user }) => {
             this.insertAttachment(new A.Small(`Welcome back, ${user.tag}.`));
-        })
+            return false;
+        });
+
+        game.on(ServerResponse.CurrentUser, ({ user }) => {
+            const tags = document.getElementsByClassName(`user-${user.id}`);
+            const newVal = game.lookup(user.tag);
+            for (let i = 0; i < tags.length; i++) {
+                tags[i].textContent = newVal;
+            }
+        });
 
         this.setupAutoComplete();
     }
@@ -299,7 +308,11 @@ class Input {
                     ? '<span class="copypasta execute" pasta="' + cmd + '">' + text + '</span>'
                     : '<span class="copypasta execute">' + cmd + '</span>'
             )
-            .replace(/\|(.*?)\|/g, '<span class="copypasta">$1</span>');
+            .replace(/\|\](.*?)\[(.*?)\|/g, (_, cmd, text) =>
+                text
+                    ? '<span class="copypasta" pasta="' + cmd + '">' + text + '</span>'
+                    : '<span class="copypasta">' + cmd + '</span>'
+            );
 
         history.appendChild(element);
 
@@ -356,7 +369,7 @@ class Input {
     // });
 
     // Connect
-    const socket = new WebSocket('ws://localhost:8080');
+    const socket = new WebSocket(`ws://${window.location.host}`);
     socket.addEventListener('close', () => {
         window.location.reload();
     });
