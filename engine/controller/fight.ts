@@ -177,19 +177,23 @@ export class FightController {
         });
     };
 
-    // static requireNoFight(user, channelId, getOpponents) {
-    //     return FightController.findFight(user, channelId, getOpponents).then(function (fight) {
-    //         if (fight) throw new Warning('You\'re already in a fight!');
-    //     })
-    // };
+    static RequireNoFight(user: User, channelId: string, getOpponents: boolean) {
+        return FightController.FindFight(user, channelId, getOpponents).then(fight => {
+            if (fight) {
+                throw new Warning('You\'re already in a fight!');
+            }
+        })
+    };
 
-    // static requireFight(user, channelId, getOpponents) {
-    //     return FightController.findFight(user, channelId, getOpponents).then(function (fight) {
-    //         if (!fight) throw new Warning('You cannot do that unless you\'re in a fight!');
+    static RequireFight(user: User, channelId: string, getOpponents: boolean) {
+        return FightController.FindFight(user, channelId, getOpponents).then(fight => {
+            if (!fight) {
+                throw new Warning('You cannot do that unless you\'re in a fight!');
+            }
 
-    //         return fight;
-    //     });
-    // };
+            return fight;
+        });
+    };
 
     // static requireTurn(user, channelId, getOpponents) {
     //     return FightController.requireFight(user, channelId, getOpponents).then(function (fight) {

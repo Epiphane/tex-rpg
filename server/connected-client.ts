@@ -1,6 +1,6 @@
 import * as A from '../engine/attachment';
 import * as ClientAction from '../engine/client-actions';
-import ServerResponse, { Attach, CurrentUser, Token } from '../engine/server-actions';
+import ServerResponse, { Attach, CurrentUser, Lookup, Token } from '../engine/server-actions';
 import { WebSocket } from 'ws';
 import * as jwt from 'jsonwebtoken';
 import environment from './environment';
@@ -136,8 +136,25 @@ export class ConnectedClient {
         this.channel = channel;
     }
 
-    OnLookup(payload: ClientAction.Lookup) {
+    OnLookup({ tag }: ClientAction.Lookup) {
+        if (!this.zone) {
+            return;
+        }
 
+        if (tag[0] === '@') {
+            const name = tag.substr(1);
+            UserController.Lookup(name, this.zone).then(users => {
+                this.send(new Lookup(users.map(user => user.format())));
+            });
+        }
+        else if (tag[0] === '#') {
+            const userId = parseInt(tag.substr(1));
+            UserController.FindById(userId, this.zone).then(user => {
+                if (user) {
+                    this.send(new Lookup([user.format()]))
+                }
+            })
+        }
     }
 
     OnCommand({ command }: ClientAction.Command) {

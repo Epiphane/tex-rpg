@@ -6,7 +6,7 @@ export default {
     sequelize: {
         uri: 'sqlite://',
         storage: 'test.sqlite',
-        // logging: false,
+        logging: false,
         options: {
             storage: 'test.sqlite',
             define: {

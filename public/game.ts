@@ -8,7 +8,7 @@ export class Game {
     socket?: WebSocket;
 
     user?: User;
-    users: User[] = [];
+    users: { [key: number]: User } = {};
 
     private token?: string = localStorage.getItem('token') ?? undefined;
     private listeners: { [key: string]: ActionHandler[] } = {};
@@ -27,6 +27,24 @@ export class Game {
 
         this.on(ServerResponse.CurrentUser, ({ user }) => {
             this.user = user;
+
+            this.recv({
+                action: 'UpdateUsers',
+                users: [user],
+            } as ServerResponse.UpdateUsers);
+        });
+
+        this.on(ServerResponse.Lookup, ({ users }) => {
+            this.recv({
+                action: 'UpdateUsers',
+                users,
+            } as ServerResponse.UpdateUsers);
+        })
+
+        this.on(ServerResponse.UpdateUsers, ({ users }) => {
+            users.forEach(user => {
+                this.users[user.id] = user;
+            });
         });
     }
 
@@ -53,7 +71,7 @@ export class Game {
             // Only call once
             socket.onopen = null;
 
-            this.users = [];
+            this.users = {};
 
             this.send(new ClientAction.SetZone('WEBAPP'));
 
@@ -104,7 +122,6 @@ export class Game {
     }
 
     recv(payload: ServerResponse.default) {
-        console.log(payload);
         const listeners = this.listeners[payload.action];
         if (listeners && listeners.length > 0) {
             for (let i = 0; i < listeners.length; i++) {
@@ -130,54 +147,36 @@ export class Game {
     }
 
     lookup(tag: string) {
-        if (this.user && tag === this.user.tag && this.user.name) return this.user.name;
+        if (this.user && tag === this.user.tag && this.user.name) {
+            return this.user.name;
+        }
 
         const match = tag.match(/<#(.*?)>/);
-        if (!match) {
+        if (!match || !match[1]) {
             return tag;
         }
 
-        const [userId] = match;
-        if (!userId) {
-            return tag;
+        const userId = parseInt(match[1]);
+        if (this.users[userId]) {
+            return this.users[userId].tag;
         }
         else {
-            // TODO lookup known users
+            this.send(new ClientAction.Lookup(`#${userId}`));
             return tag;
-            // var ndx = indexOf(parseInt(userId, 10));
-
-            // if (ndx < 0) {
-            //     socket.emit('lookup', '#' + userId, function (user) {
-            //         addUser(user);
-            //     });
-            //     return '[User ' + userId + ']';
-            // }
-
-            // return '@' + users[ndx].name;
         }
     }
 
-    autocomplete(name: string, callback: ((names: User[]) => void)) {
-        callback(this.users.filter(user => {
+    autocomplete(name: string, callback: ((names: string[]) => void)) {
+        callback(Object.values(this.users).filter(user => {
             return user.name && user.name.indexOf(name) >= 0;
-        }));
+        }).map(user => user.toString()));
 
         this.on(ServerResponse.Lookup, ({ users }) => {
-            var result: User[] = [];
-            users.forEach(info => {
-                if (this.users.filter(u => u.id === info.id).length === 0) {
-                    result.push(new User(info));
-                }
-            });
-
-            callback(result);
-            // result.forEach(user => {
-            //    addUser(user);
-            // });
+            callback(users.map(info => new User(info).toString()));
             return false; // Destroy this listener
         });
 
-        this.send(new ClientAction.Lookup(name));
+        this.send(new ClientAction.Lookup(`@${name}`));
     }
 
     toTag(name: string) {
@@ -185,7 +184,7 @@ export class Game {
             return this.user.tag;
         }
 
-        const filtered = this.users.filter(user => user.name === name);
+        const filtered = Object.values(this.users).filter(user => user.name === name);
         return filtered ? filtered[0].tag : '';
     };
 

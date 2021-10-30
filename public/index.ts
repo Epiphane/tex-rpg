@@ -65,12 +65,14 @@ class Input {
             return false;
         });
 
-        game.on(ServerResponse.CurrentUser, ({ user }) => {
-            const tags = document.getElementsByClassName(`user-${user.id}`);
-            const newVal = game.lookup(user.tag);
-            for (let i = 0; i < tags.length; i++) {
-                tags[i].textContent = newVal;
-            }
+        game.on(ServerResponse.UpdateUsers, ({ users }) => {
+            users.forEach(user => {
+                const tags = document.getElementsByClassName(`user-${user.id}`);
+                const newVal = game.lookup(user.tag);
+                for (let i = 0; i < tags.length; i++) {
+                    tags[i].textContent = newVal;
+                }
+            });
         });
 
         this.setupAutoComplete();
@@ -91,14 +93,13 @@ class Input {
         // Don't gotta clean this up cause it never goes away~
         const textcomplete = new Textcomplete(editor, [
             {
-                match: /\B@(\w{2+})$/,
+                match: /\B@(\w{2,})$/,
                 search: (term: string, callback: (results: User[]) => void) => {
                     term = term.toLowerCase();
                     this.game.autocomplete(term, callback);
                 },
                 index: 1,
                 replace: (mention: string) => {
-                    console.log(mention);
                     replaced = true;
                     return '@' + mention + ' ';
                 }

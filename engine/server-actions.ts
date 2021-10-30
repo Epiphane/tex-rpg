@@ -5,6 +5,15 @@ export default interface ServerResponse {
     action: string;
 }
 
+export class UpdateUsers implements ServerResponse {
+    action = 'UpdateUsers';
+    users: UserInfo[];
+
+    constructor(users: User[]) {
+        this.users = users.map(user => user.format());
+    }
+}
+
 export class CurrentUser implements ServerResponse {
     action = 'CurrentUser';
     user: UserInfo;

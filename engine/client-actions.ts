@@ -34,7 +34,7 @@ export class SetChannel implements ClientAction {
 export class Lookup implements ClientAction {
     action = 'Lookup';
     constructor(
-        public name: string
+        public tag: string
     ) { }
 }
 
