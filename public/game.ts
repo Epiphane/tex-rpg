@@ -158,7 +158,7 @@ export class Game {
 
         const userId = parseInt(match[1]);
         if (this.users[userId]) {
-            return this.users[userId].tag;
+            return this.users[userId].name ?? this.users[userId].tag;
         }
         else {
             this.send(new ClientAction.Lookup(`#${userId}`));

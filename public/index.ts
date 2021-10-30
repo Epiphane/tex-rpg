@@ -94,7 +94,7 @@ class Input {
         const textcomplete = new Textcomplete(editor, [
             {
                 match: /\B@(\w{2,})$/,
-                search: (term: string, callback: (results: User[]) => void) => {
+                search: (term: string, callback: (results: string[]) => void) => {
                     term = term.toLowerCase();
                     this.game.autocomplete(term, callback);
                 },
