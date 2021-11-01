@@ -149,7 +149,8 @@ export class FightController {
                 channelId,
                 winnerId: null
             },
-            joinTableAttributes: ['health']
+            joinTableAttributes: ['health'],
+            limit: 1,
         }).then(([fight]) => {
             if (!getOpponents || !fight) {
                 return fight;

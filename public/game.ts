@@ -89,32 +89,6 @@ export class Game {
         else if (socket.readyState === 1) {
             socket.onopen({} as Event);
         }
-
-        // socket.on('user', function (_user) {
-        //    user = _user;
-        //    $('.user-' + user.user_id).text('@' + user.name);
-        // });
-
-        // socket.on('users add', function (res) {
-        //    if (!Array.isArray(res)) res = [res];
-
-        //    for (var i = res.length - 1; i >= 0; i--) {
-        //       addUser(res[i]);
-        //    };
-        // });
-
-        // socket.on('users remove', function (res) {
-        //    return;
-        //    // if (!Array.isArray(res)) res = [res];
-
-        //    // for (var i = res.length - 1; i >= 0; i--) {
-        //    //    removeUser(res[i]);
-        //    // };
-        // });
-
-        // socket.on('team', function () {
-        //    socket.emit('team', 'THOMASSTEINKE');
-        // });
     }
 
     send(payload: ClientAction.default) {

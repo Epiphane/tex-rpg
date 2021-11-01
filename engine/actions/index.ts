@@ -1,6 +1,7 @@
 import { Attachment } from "../attachment";
 import ServerResponse from "../server-actions";
 import User from "../models/user";
+import * as craft from "./craft";
 import * as help from "./help";
 import * as status from "./status";
 
@@ -9,6 +10,7 @@ export type Action = (args: string[], user?: User, channel?: string) => ActionOu
 export type ActionMap = { [key: string]: Action };
 
 export const Actions = {
+    ...craft,
     ...help,
     ...status,
 } as ActionMap;

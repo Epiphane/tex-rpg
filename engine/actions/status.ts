@@ -8,10 +8,10 @@ export function status(args: string[], user: User, channel: string) {
     const [subcommand] = args;
     if (subcommand === 'help') {
         return new Info([
-            `\`${Pasta('status', true)}\` : your level, experience, etc`,
-            `\`${Pasta('status help', true)}\` : this dialog`,
-            `\`${Pasta('status moves', true)}\` : your moves`,
-            `\`${Pasta('status items', true)}\` : your items`,
+            `${Pasta('status', true)} : your level, experience, etc`,
+            `${Pasta('status help', true)} : this dialog`,
+            `${Pasta('status moves', true)} : your moves`,
+            `${Pasta('status items', true)} : your items`,
         ]);
     }
     else if (subcommand === 'items' || subcommand === 'moves') {
@@ -26,28 +26,29 @@ export function status(args: string[], user: User, channel: string) {
             return new Info([
                 `Status update for user ${user.tag} (${health} health)`,
                 `Currently fighting ${opponent.tag} (${opponent.Fighting?.health} health)`,
-                `Type \`${Pasta('status help', true)}\` for more options`,
+                `Type ${Pasta('status help', true)} for more options`,
             ]);
         }
         else {
             return new Info([
                 `Status update for user ${user.tag}:`,
                 `Level: ${user.level}`,
-                `Type \`${Pasta('status help', true)}\` for more options`,
+                `Type ${Pasta('status help', true)} for more options`,
             ]);
         }
     });
 };
 
-export function name([name]: string[], user: User, channel: string) {
-    if (!name) throw `Usage: \`${Pasta('name ', false, 'name XXX')}\``;
+export async function name([name]: string[], user: User, channel: string) {
+    if (!name) throw `Usage: ${Pasta('name ', false, 'name XXX')}`;
 
-    return user.alias.update({
+    await user.alias.update({
         name,
-    }).then(() => [
+    });
+    return [
         new Good(`Name changed. Hi, ${user.tag}!`),
         new CurrentUser(user),
-    ])
+    ];
 };
 
 export function moves(args: string[], user: User, channel: string) {

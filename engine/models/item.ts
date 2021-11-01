@@ -1,14 +1,9 @@
-import { Column, DataType, Model, Table } from "sequelize-typescript";
+import { BelongsTo, Column, DataType, Model, Table } from "sequelize-typescript";
+import { ModelWithRandomId } from "../model-helpers";
+import User from "./user";
 
 @Table
-export default class Item extends Model {
-    @Column({
-        type: DataType.INTEGER,
-        primaryKey: true,
-        allowNull: false,
-    })
-    id!: number;
-
+export default class Item extends ModelWithRandomId {
     @Column({
         type: DataType.STRING,
         allowNull: false,
@@ -23,4 +18,10 @@ export default class Item extends Model {
         allowNull: false,
     })
     type: string = '';
+
+    @BelongsTo(() => User, {
+        foreignKey: 'userId',
+        constraints: false
+    })
+    user?: User;
 }

@@ -1,18 +1,12 @@
 import { BelongsTo, BelongsToMany, Column, DataType, HasMany, Model, Table } from "sequelize-typescript";
 import { BelongsToManyGetAssociationsMixin } from "sequelize/types";
+import { ModelWithRandomId } from "../model-helpers";
 import FightAction from "./fight-action";
 import Fighting from "./fighting";
 import User from "./user";
 
 @Table
-export default class Fight extends Model {
-    // @Column({
-    //     type: DataType.INTEGER,
-    //     primaryKey: true,
-    //     allowNull: false,
-    // })
-    id!: number;
-
+export default class Fight extends ModelWithRandomId {
     @Column({
         type: DataType.STRING,
         allowNull: false,

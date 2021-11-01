@@ -1,10 +1,31 @@
-import { Column, DataType, Model, PrimaryKey, Table, BeforeBulkCreate, BeforeCreate, BeforeUpdate, BelongsTo, HasMany, BelongsToMany } from "sequelize-typescript";
-import { BelongsToManyGetAssociationsMixin } from "sequelize/types";
+import {
+    Column,
+    DataType,
+    Table,
+    BeforeBulkCreate,
+    BeforeCreate,
+    BeforeUpdate,
+    BelongsTo,
+    HasMany,
+    BelongsToMany
+} from "sequelize-typescript";
+import {
+    BelongsToGetAssociationMixin,
+    BelongsToManyGetAssociationsMixin,
+    HasManyCreateAssociationMixin,
+    HasOneCreateAssociationMixin,
+    HasOneGetAssociationMixin
+} from "sequelize/types";
 import * as crypto from 'crypto';
 import Alias from "./alias";
 import Item from "./item";
 import Fight from "./fight";
 import Fighting from "./fighting";
+import Crafting from "./crafting";
+import { ModelWithRandomId } from "../model-helpers";
+import Origin from "./origin";
+import ItemTypeProficiency from "./item-type-proficiency";
+import ItemType from "./item-type";
 
 export interface UserInfo {
     id: number;
@@ -15,14 +36,7 @@ export interface UserInfo {
 }
 
 @Table
-export default class User extends Model {
-    // @Column({
-    //     type: DataType.INTEGER,
-    //     primaryKey: true,
-
-    // })
-    id!: number;
-
+export default class User extends ModelWithRandomId {
     @Column({
         type: DataType.STRING,
         allowNull: false,
@@ -66,12 +80,23 @@ export default class User extends Model {
     })
     items?: Item[];
 
+    @BelongsTo(() => Origin, 'originId')
+    origin?: Origin;
+
+    @BelongsToMany(() => ItemType, () => ItemTypeProficiency, 'userId', 'itemTypeId')
+    itemTypeProficiencies?: ItemType[];
+
+    @HasMany(() => Crafting, 'userId')
+    crafting?: Crafting[];
+
     @BelongsToMany(() => Fight, () => Fighting, 'userId', 'fightId')
     fights?: Fight[];
     Fighting?: Fighting;
 
     // Association methods
     getFights!: BelongsToManyGetAssociationsMixin<Fight>;
+    getOrigin!: BelongsToGetAssociationMixin<Origin>;
+    createCrafting!: HasManyCreateAssociationMixin<Crafting>;
 
     // Getters
     get tag() {
@@ -100,6 +125,9 @@ export default class User extends Model {
         };
     };
 
+    //
+    // Hooks
+    //
     @BeforeBulkCreate
     static beforeBulkCreateHook(users: User[], options: any) {
         return Promise.all(
@@ -138,7 +166,7 @@ export default class User extends Model {
     */
 
     authenticate(password: string) {
-        return this.password === this.encryptPassword(password);
+        return !this.AI && this.password === this.encryptPassword(password);
     };
 
     makeSalt(byteSize: number = 16) {

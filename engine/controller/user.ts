@@ -6,12 +6,19 @@ import { AliasController } from "./alias";
 
 export class UserController {
     private static async FindOne(options: FindOptions<User['_attributes']>, zoneId: string) {
-        const user = await User.findOne(options);
+        const user = await User.findOne({
+            ...options,
+            include: [{
+                model: Alias,
+                where: {
+                    zoneId,
+                }
+            }]
+        });
         if (!user) {
             return user;
         }
-        const alias = await AliasController.GetAlias(user.id, zoneId);
-        user.alias = alias;
+        user.alias = user.aliases![0];
         return user;
     }
 

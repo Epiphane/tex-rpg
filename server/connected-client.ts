@@ -63,69 +63,67 @@ export class ConnectedClient {
         }
     }
 
-    OnToken({ token }: ClientAction.Token) {
-        new Promise((resolve: (value: UserToken) => void, reject) => {
-            try {
-                resolve(jwt.verify(token, environment.jwtSecret) as UserToken);
-            }
-            catch (e: any) {
-                reject(`Invalid token: \`${e.message}\``);
-            }
-        })
-            .then(token => {
-                if (token.iss !== 'RGB') {
-                    throw new Error(`Unexpected error, code=0101`);
-                }
-                else if (!token.sub) {
-                    throw new Error(`Unexpected error, code=0102`);
-                }
+    async OnToken({ token: encodedJwt }: ClientAction.Token) {
+        let token: UserToken;
+        try {
+            token = jwt.verify(encodedJwt, environment.jwtSecret) as unknown as UserToken;
+        }
+        catch (e: any) {
+            this.send([
+                new Attach(new A.Error(`Invalid token: \`${e.message}\``)),
+                new Token(),
+            ]);
+            return;
+        }
 
-                return token;
-            })
-            .then(token =>
-                UserController.FindByEmail(token.sub!, token.zoneId)
-                    .then(user => {
-                        if (!user) {
-                            throw new Error(`Unexpected error, code=0201`);
-                        }
-                        else if (user.id !== token.id) {
-                            throw new Error(`Unexpected error, code=0202`);
-                        }
-                        return user;
-                    })
-            )
-            .then(user => {
-                // Valid login!
-                this.user = user;
-                this.send(new CurrentUser(user));
-            })
-            .catch(err => {
-                this.send(new Attach(new A.Error(`Error refreshing token: \`${err}\``)));
-                this.send(new Token());
-            });
+        try {
+            if (token.iss !== 'RGB') {
+                throw new Error(`Unexpected error, code=0101`);
+            }
+            else if (!token.sub) {
+                throw new Error(`Unexpected error, code=0102`);
+            }
+
+            const user = await UserController.FindByEmail(token.sub!, token.zoneId);
+            if (!user) {
+                throw new Error(`Unexpected error, code=0201`);
+            }
+            else if (user.id !== token.id) {
+                throw new Error(`Unexpected error, code=0202`);
+            }
+            // Valid login!
+            this.user = user;
+            this.send(new CurrentUser(user));
+        }
+        catch (err) {
+            this.send([
+                new Attach(new A.Error(`Error refreshing token: \`${err}\``)),
+                new Token(),
+            ]);
+        };
     }
 
-    OnLogin({ email, password }: ClientAction.Login) {
+    async OnLogin({ email, password }: ClientAction.Login) {
         if (!this.zone) {
             this.send(new Attach(new A.Error(`No game zone specified, please reload.`)));
             return;
         }
 
-        UserController.FindByEmail(email, this.zone).then(user => {
-            if (!user || !user.authenticate(password)) {
-                this.send(new Token());
-            }
-            else {
-                this.send(new Token(jwt.sign(
-                    user.format(),
-                    environment.jwtSecret,
-                    {
-                        issuer: `RGB`,
-                        subject: user.email,
-                    }
-                )));
-            }
-        });
+        const user = await UserController.FindByEmail(email, this.zone);
+        if (!user || !user.authenticate(password)) {
+            this.send(new Token());
+        }
+        else {
+            this.user = user;
+            this.send(new Token(jwt.sign(
+                user.format(),
+                environment.jwtSecret,
+                {
+                    issuer: `RGB`,
+                    subject: user.email,
+                }
+            )));
+        }
     }
 
     OnSetZone({ zone }: ClientAction.SetZone) {
@@ -178,7 +176,7 @@ export class ConnectedClient {
         else {
             this.send(new Attach(new A.Warning([
                 `'${action}' is not an available action.`,
-                `Type \`${A.Pasta('help', true)}\` for the list of available actions.`
+                `Type ${A.Pasta('help', true)} for the list of available actions.`
             ])))
         }
     }
