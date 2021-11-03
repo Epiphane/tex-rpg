@@ -23,16 +23,28 @@ export async function craft(args: string[], user: User, channel: string) {
         limit: 1,
     });
     if (!existing) {
-        const crafting = await CraftController.StartCrafting(user, args[0] ?? '', channel);
-        return CraftController.GeneratePrompt(user, crafting);
+        if (args.length === 0) {
+            return [
+                new Info(`You are not crafting anything.`),
+                await CraftController.GeneratePrompt(user),
+            ]
+        }
+        else {
+            const crafting = await CraftController.StartCrafting(user, args[0] ?? '', channel);
+            return CraftController.GeneratePrompt(user, crafting);
+        }
     }
     else {
         if (args.length === 0) {
-            return CraftController.GetStatus(existing, user);
+            return CraftController.GetStatus(user, existing);
+        }
+        else if (args[0] === 'quit') {
+            await existing.destroy();
+            return new Info('Crafting cancelled.');
         }
         else {
-            const crafting = await CraftController.ContinueCrafting(existing, user, args);
-            return CraftController.GeneratePrompt(user, crafting);
+            await CraftController.ContinueCrafting(user, existing, args);
+            return CraftController.GeneratePrompt(user, existing);
         }
     }
 }

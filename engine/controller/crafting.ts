@@ -1,10 +1,10 @@
 import { Op } from "sequelize";
-import { Info, One, Pasta, Warning } from "../attachment";
+import { Info, One, Pasta, Warning, Error, Good } from "../attachment";
 import Crafting from "../models/crafting";
 import ItemType from "../models/item-type";
 import ItemTypeProficiency from "../models/item-type-proficiency";
-import Origin from "../models/origin";
 import User from "../models/user";
+import Phase from '../crafting';
 
 export interface CraftingStats {
     level?: number;
@@ -21,11 +21,6 @@ export class CraftController {
         return types.map(type => type.itemType!);
     }
 
-    static async GetAvailableOrigins(crafting: Crafting, user: User): Promise<Origin[]> {
-        const origin = await user.getOrigin();
-        return origin ? [origin] : [];
-    }
-
     static async StartCrafting(user: User, type: string, channelId: string) {
         const types = await this.GetAvailableTypes(user);
         const match = types.find(
@@ -35,6 +30,7 @@ export class CraftController {
             const crafting = await user.$create<Crafting>('crafting', {
                 channelId,
                 typeId: match.id,
+                phase: 'PickOrigin',
             });
             crafting.type = match;
 
@@ -42,26 +38,16 @@ export class CraftController {
         }
     }
 
-    static async ContinueCrafting(crafting: Crafting, user: User, args: string[]) {
-        const arg = (args[0] ?? '').toLowerCase();
-
-        const { origin } = crafting;
-        if (!origin) {
-            const origins = await this.GetAvailableOrigins(crafting, user);
-            const match = origins.find(
-                origin => origin.name?.toLowerCase() === arg
-            );
-            if (match) {
-                await crafting.$set('origin',
-                    crafting.origin = match
-                );
-            }
+    static async ContinueCrafting(user: User, crafting: Crafting, args: string[]) {
+        const phase = Phase[crafting.phase];
+        if (!phase) {
+            throw 'Unexpected error, code=0301';
         }
 
-        return crafting;
+        await phase.Use(user, crafting, args);
     }
 
-    static async GetStatus(crafting: Crafting, user: User) {
+    static async GetStatus(user: User, crafting: Crafting) {
         const info = [];
         const { type, origin } = crafting;
 
@@ -73,7 +59,7 @@ export class CraftController {
             info.push(`It is of ${origin.name} origin.`);
         }
 
-        info.push(`Type ${Pasta('craft quit')} to quit crafting`);
+        info.push(`Type ${Pasta('craft quit')} to quit crafting.`);
 
         return [
             new Info(info),
@@ -85,24 +71,27 @@ export class CraftController {
         if (!crafting) {
             const types = await this.GetAvailableTypes(user);
             return new Warning([
-                `Choose a type of item to create:`,
+                `To begin, choose a type of item to create:`,
                 ...types.map(type =>
                     `- ${Pasta(`craft ${type.name.toLowerCase()}`, true)}`
                 ),
             ]);
         }
 
-        const { origin } = crafting;
-        if (!origin) {
-            const origins = await this.GetAvailableOrigins(crafting, user);
-            return new Warning([
-                `Choose an environment of origin:`,
-                ...origins.map(origin =>
-                    `- ${Pasta(`craft ${origin.name.toLowerCase()}`, true)}`
-                ),
-            ]);
+        if (crafting.isSoftDeleted()) {
+            return new Good(`\`${crafting.name}\` is complete!`);
         }
 
-        return new Error('Not implemented yet');
+        const phase = Phase[crafting.phase];
+        if (!phase) {
+            throw 'Unexpected error, code=0302';
+        }
+
+        try {
+            return phase.Prompt(user, crafting);
+        }
+        catch (err: any) {
+            return new Error(err?.message ?? `${err}`);
+        }
     }
 }

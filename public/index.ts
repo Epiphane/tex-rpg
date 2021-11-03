@@ -18,8 +18,8 @@ class Input {
     confirm = false;
     confirmCheck?: string;
 
-    log: string[] = [];
-    logIndex = 0;
+    log: string[];
+    logIndex: number;
 
     pendingEmail?: string;
 
@@ -29,6 +29,14 @@ class Input {
     constructor(
         private readonly game: Game
     ) {
+        try {
+            this.log = JSON.parse(localStorage.getItem('log') ?? '[]');
+        }
+        catch {
+            this.log = [];
+        }
+        this.logIndex = this.log.length;
+
         game.on(ServerResponse.Attach, ({ attachments }) => {
             attachments.forEach(this.insertAttachment.bind(this));
         });
@@ -213,6 +221,8 @@ class Input {
     addToLog() {
         this.log.push(this.value);
         this.logIndex = this.log.length;
+
+        localStorage.setItem('log', JSON.stringify(this.log));
     };
 
     enter() {

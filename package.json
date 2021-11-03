@@ -17,6 +17,7 @@
   "devDependencies": {
     "@types/cookie-parser": "^1.4.2",
     "@types/express": "^4.17.13",
+    "@types/glob": "^7.2.0",
     "@types/jsonwebtoken": "^8.5.5",
     "@types/ws": "^8.2.0",
     "concurrently": "^6.3.0",
@@ -35,6 +36,7 @@
     "cookie-parser": "^1.4.5",
     "crypto": "^1.0.1",
     "express": "^4.17.1",
+    "glob": "^7.2.0",
     "jsonwebtoken": "^8.5.1",
     "nocache": "^3.0.1",
     "pg": "^8.7.1",

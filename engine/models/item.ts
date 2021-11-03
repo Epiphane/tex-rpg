@@ -1,6 +1,11 @@
 import { BelongsTo, Column, DataType, Model, Table } from "sequelize-typescript";
 import { ModelWithRandomId } from "../model-helpers";
+import ItemType from "./item-type";
 import User from "./user";
+
+export interface ItemStats {
+    [key: string]: object
+};
 
 @Table
 export default class Item extends ModelWithRandomId {
@@ -8,16 +13,13 @@ export default class Item extends ModelWithRandomId {
         type: DataType.STRING,
         allowNull: false,
     })
-    name?: string;
+    name!: string;
 
     @Column(DataType.JSON)
-    stats: object = {};
+    stats: ItemStats = {};
 
-    @Column({
-        type: DataType.STRING,
-        allowNull: false,
-    })
-    type: string = '';
+    @BelongsTo(() => ItemType, 'typeId')
+    type?: ItemType;
 
     @BelongsTo(() => User, {
         foreignKey: 'userId',

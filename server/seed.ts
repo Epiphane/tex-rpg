@@ -12,8 +12,8 @@ export async function SeedDB() {
         await sequelize.sync({ force: true });
 
         // World building
-        const [weapon, armor] = await ItemType.bulkCreate([
-            { name: 'Weapon' },
+        const [sword, armor] = await ItemType.bulkCreate([
+            { name: 'Sword' },
             { name: 'Armor' },
         ]);
 
@@ -39,27 +39,45 @@ export async function SeedDB() {
             AI: true,
         });
 
-        const thomas = await User.create({
-            id: 2,
-            email: 'exyphnos@gmail.com',
-            password: 'thomas',
-            originId: elderryn.id,
-        });
-        thomas.alias = await Alias.create({
-            name: 'Thomas',
-            zoneId: 'WEBAPP',
-            userId: thomas.id,
-        });
-
+        // Everyone can make swords
         await ItemTypeProficiency.create({
             userId: nullChar.id,
-            itemTypeId: weapon.id,
+            itemTypeId: sword.id,
         });
 
-        await ItemTypeProficiency.create({
-            userId: thomas.id,
-            itemTypeId: armor.id,
-        });
+        {
+            const tester = await User.create({
+                id: 1,
+                email: 'test@thomassteinke.com',
+                password: 'test',
+                originId: alliance.id,
+            });
+            tester.alias = await Alias.create({
+                name: 'Tester',
+                zoneId: 'WEBAPP',
+                userId: tester.id,
+            });
+        }
+
+        {
+            const thomas = await User.create({
+                id: 2,
+                email: 'exyphnos@gmail.com',
+                password: 'thomas',
+                originId: elderryn.id,
+            });
+            thomas.alias = await Alias.create({
+                name: 'Thomas',
+                zoneId: 'WEBAPP',
+                userId: thomas.id,
+            });
+
+            await ItemTypeProficiency.create({
+                userId: thomas.id,
+                itemTypeId: armor.id,
+            });
+        }
+
 
         // await CraftController.StartCrafting(thomas, weapon.name, 'MAIN');
 
