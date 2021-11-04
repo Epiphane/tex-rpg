@@ -47,3 +47,9 @@ export class Attach implements ServerResponse {
         this.attachments = attachments;
     }
 }
+
+export class AvailableCommands implements ServerResponse {
+    action = 'AvailableCommands';
+
+    constructor(public commands: string[]) { }
+}

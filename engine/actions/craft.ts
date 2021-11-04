@@ -48,3 +48,5 @@ export async function craft(args: string[], user: User, channel: string) {
         }
     }
 }
+
+craft.description = 'Begin, or continue, crafting an item.';

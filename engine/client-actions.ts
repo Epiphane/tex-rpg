@@ -44,3 +44,7 @@ export class Command implements ClientAction {
         public command: string
     ) { }
 }
+
+export class GetAvailableCommands implements ClientAction {
+    action = 'GetAvailableCommands';
+}

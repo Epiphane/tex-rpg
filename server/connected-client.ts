@@ -1,11 +1,11 @@
 import * as A from '../engine/attachment';
 import * as ClientAction from '../engine/client-actions';
-import ServerResponse, { Attach, CurrentUser, Lookup, Token } from '../engine/server-actions';
+import ServerResponse, { Attach, AvailableCommands, CurrentUser, Lookup, Token } from '../engine/server-actions';
 import { WebSocket } from 'ws';
 import * as jwt from 'jsonwebtoken';
 import environment from './environment';
 import User, { UserInfo } from '../engine/models/user';
-import { Actions } from '../engine/actions';
+import { Actions, SortedActions } from '../engine/actions';
 import { UserController } from '../engine/controller/user';
 
 type UserToken = UserInfo & jwt.JwtPayload;
@@ -57,6 +57,9 @@ export class ConnectedClient {
         }
         else if (payload.action === 'Command') {
             this.OnCommand(payload as ClientAction.Command);
+        }
+        else if (payload.action === 'GetAvailableCommands') {
+            this.OnGetAvailableCommands();
         }
         else {
             console.warn('Unhandled payload', payload);
@@ -179,5 +182,13 @@ export class ConnectedClient {
                 `Type ${A.Pasta('help', true)} for the list of available actions.`
             ])))
         }
+    }
+
+    OnGetAvailableCommands() {
+        this.send(new AvailableCommands(
+            SortedActions
+                .map(cmd => Actions[cmd].format?.() ?? A.Pasta(cmd, true))
+                .filter(line => !!line)
+        ));
     }
 }

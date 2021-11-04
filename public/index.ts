@@ -9,9 +9,31 @@ import { TextareaEditor } from "@textcomplete/textarea";
 const content = document.getElementById('content')!;
 const history = document.getElementById('history')!;
 
+declare global {
+    interface String {
+        formatMarkbottom(): string;
+    }
+}
+
+String.prototype.formatMarkbottom = function (this: string) {
+    return this
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\|\[(.*?)\](.*?)\|/g, (_, cmd, text) =>
+            text
+                ? '<span class="copypasta execute" pasta="' + cmd + '">' + text + '</span>'
+                : '<span class="copypasta execute">' + cmd + '</span>'
+        )
+        .replace(/\|\](.*?)\[(.*?)\|/g, (_, cmd, text) =>
+            text
+                ? '<span class="copypasta" pasta="' + cmd + '">' + text + '</span>'
+                : '<span class="copypasta">' + cmd + '</span>'
+        );
+};
+
 class Input {
     data = document.getElementById('command') as HTMLTextAreaElement;
     div = document.getElementById('input-display');
+    commands = document.getElementById('commands');
     value = '';
     isPassword = false;
 
@@ -81,6 +103,11 @@ class Input {
                     tags[i].textContent = newVal;
                 }
             });
+        });
+
+        this.setCommands([`|[help]|`]);
+        game.on(ServerResponse.AvailableCommands, ({ commands }) => {
+            this.setCommands(commands);
         });
 
         this.setupAutoComplete();
@@ -313,20 +340,29 @@ class Input {
             .replace(/<#([0-9]+)>/g, (tag, id) =>
                 '<span class="user-tag user-' + id + '">' + this.game.lookup(tag) + '</span>'
             )
-            .replace(/`(.*?)`/g, '<code>$1</code>')
-            .replace(/\|\[(.*?)\](.*?)\|/g, (_, cmd, text) =>
-                text
-                    ? '<span class="copypasta execute" pasta="' + cmd + '">' + text + '</span>'
-                    : '<span class="copypasta execute">' + cmd + '</span>'
-            )
-            .replace(/\|\](.*?)\[(.*?)\|/g, (_, cmd, text) =>
-                text
-                    ? '<span class="copypasta" pasta="' + cmd + '">' + text + '</span>'
-                    : '<span class="copypasta">' + cmd + '</span>'
-            );
+            .formatMarkbottom();
 
         history.appendChild(element);
 
+        this.setupLinks(element);
+        content.scrollTo(0, content.scrollHeight);
+    };
+
+    setCommands(commands: string[]) {
+        if (this.commands) {
+            while (this.commands.firstChild) {
+                this.commands.removeChild(this.commands.firstChild);
+            }
+
+            this.commands.innerHTML = commands
+                .map(command => `<li>${command}</li>`)
+                .join('')
+                .formatMarkbottom();
+            this.setupLinks(this.commands);
+        };
+    }
+
+    setupLinks(element: HTMLElement) {
         const pastas = element.getElementsByClassName('copypasta');
         for (let i = 0; i < pastas.length; i++) {
             const pasta = pastas[i] as HTMLElement;
@@ -350,9 +386,7 @@ class Input {
                 }
             };
         };
-
-        window.scrollTo(0, document.body.scrollHeight);
-    };
+    }
 
     insertAttachments(attachments: A.Attachment[]) {
         attachments.forEach(attach => this.insertAttachment(attach));

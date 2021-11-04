@@ -74,6 +74,7 @@ export class Game {
             this.users = {};
 
             this.send(new ClientAction.SetZone('WEBAPP'));
+            this.send(new ClientAction.GetAvailableCommands());
 
             if (this.token) {
                 this.send(new ClientAction.Token(this.token));

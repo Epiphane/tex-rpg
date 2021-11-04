@@ -1,5 +1,5 @@
-import { ActionOutput } from ".";
-import { Good, Info, Pasta } from "../attachment";
+import { ActionOutput, Action } from ".";
+import { Error, Good, Info, Pasta, Warning } from "../attachment";
 import { FightController } from "../controller/fight";
 import User from "../models/user";
 import { Attach, CurrentUser } from "../server-actions";
@@ -39,6 +39,9 @@ export function status(args: string[], user: User, channel: string) {
     });
 };
 
+status.priority = 1;
+status.description = 'Get information about yourself.';
+
 export async function name([name]: string[], user: User, channel: string) {
     if (!name) throw `Usage: ${Pasta('name ', false, 'name XXX')}`;
 
@@ -51,26 +54,52 @@ export async function name([name]: string[], user: User, channel: string) {
     ];
 };
 
-export function moves(args: string[], user: User, channel: string) {
-    return items(args, user, channel);
+name.priority = -1;
+name.format = () => Pasta('name ', false, 'name [new name]')
+name.description = 'Change your name.';
+
+export async function item(args: string[], user: User, channel: string) {
+    if (!args[0]) {
+        return new Error(`Usage: item [name]`);
+    }
+    else {
+        return items(args, user, channel);
+    }
+}
+
+item.format = () => '';
+
+export async function items([name]: string[], user: User, channel: string) {
+    if (!name) {
+        const items = await user.$get('items');
+
+        return new Info([
+            `You have ${items.length} items.`,
+            ...items.map(item =>
+                `- ${Pasta(`items ${item.name}`, true)}`
+            ),
+        ]);
+    }
+    else {
+        const items = await user.$get('items', {
+            where: {
+                name,
+            },
+        });
+
+        if (items.length === 0) {
+            return new Warning([
+                `You have no item named ${name}!`,
+                `Type ${Pasta('items', true)} to see your inventory, or ${Pasta('craft', true)} to make something new.`,
+            ]);
+        }
+        else {
+            const [item] = items;
+            return new Info([
+                `Item ${item.name} exists, I guess.`
+            ]);
+        }
+    }
 };
 
-export function items(args: string[], user: User, channel: string): ActionOutput {
-    //     if (args[0] !== 'moves' && args[0] !== 'items') throw args[0] + ' is not a valid item type';
-
-    //     var type = args[0].substr(0, 4);
-    //     return ItemController.find(user, type).then(function (items) {
-    //         var md_text = [];
-
-    //         items.forEach(function (item, i) {
-    //             md_text.push((i + 1) + '. |[' + type + ']`' + item.name + '`| - ' + item.desc);
-    //         });
-
-    //         return {
-    //             data: items,
-    //             md_text: md_text
-    //         };
-    //     });
-    // }
-    return [];
-};
+items.description = 'See your current items.';
