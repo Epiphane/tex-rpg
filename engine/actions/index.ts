@@ -13,35 +13,20 @@ export type Action = ActionFn & {
 }
 export type ActionMap = { [key: string]: Action };
 
-const actions: ActionMap = {};
+import * as craft from "./craft";
+import * as help from "./help";
+import * as status from "./status";
 
-glob.sync(`${__dirname}/*`)
-    .filter(filename => {
-        const extension = path.extname(filename);
-        return filename !== __filename.replace(/\\/g, '/') &&
-            (extension === '.ts' || extension === '.js');
-    })
-    .map(filename => {
-        const parsedFile = path.parse(filename);
-        return path.join(parsedFile.dir, parsedFile.name);
-    })
-    .filter((item, index, arr) => arr.indexOf(item) === index)
-    .map(fullPath => {
-        const module = require(fullPath);
-        Object.keys(module).forEach(name => {
-            if (typeof (module[name]) !== 'function') {
-                throw `Object ${name} in file ${path.basename(fullPath)} is not a function`;
-            }
-            actions[name] = module[name];
-        });
-    });
+export const Actions = {
+    ...craft,
+    ...help,
+    ...status,
+} as ActionMap;
 
-export { actions as Actions };
-
-export const SortedActions = Object.keys(actions)
+export const SortedActions = Object.keys(Actions)
     .sort((a, b) => {
-        const aPriority = actions[a].priority ?? 0;
-        const bPriority = actions[b].priority ?? 0;
+        const aPriority = Actions[a].priority ?? 0;
+        const bPriority = Actions[b].priority ?? 0;
         if (aPriority !== bPriority) {
             return bPriority - aPriority;
         }
