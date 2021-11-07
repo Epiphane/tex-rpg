@@ -1,12 +1,12 @@
 import { Pasta, Warning } from "../attachment";
 import Crafting from "../models/crafting";
 import User from "../models/user";
+import { Origin } from "../origins";
 import { CraftingPhase } from "./phase";
 
 export default class PickOrigin extends CraftingPhase {
     static async GetAvailableOrigins(user: User, crafting: Crafting) {
-        const origin = await user.getOrigin();
-        return origin ? [origin] : [];
+        return user.origin ? [user.origin] : [];
     }
 
     static async Use(user: User, crafting: Crafting, [name]: string[]) {
@@ -20,13 +20,13 @@ export default class PickOrigin extends CraftingPhase {
                 crafting.origin = match
                 await Promise.all([
                     crafting.update({
-                        originId: match.id,
+                        origin: match,
                         phase: 'Complete',
                     }),
                     crafting.$create('record', {
                         phase: this.name,
                         command: `${name}`,
-                        description: `You draw on ${match.descriptor} techniques`,
+                        description: `You draw on ${match.adjective} techniques`,
                     })
                 ]);
             }

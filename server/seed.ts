@@ -3,8 +3,8 @@ import { FightController } from '../engine/controller/fight';
 import Alias from '../engine/models/alias';
 import ItemType from '../engine/models/item-type';
 import ItemTypeProficiency from '../engine/models/item-type-proficiency';
-import Origin from '../engine/models/origin';
 import User from '../engine/models/user';
+import { Origins } from '../engine/origins';
 import { sequelize } from './sqldb';
 
 export async function SeedDB() {
@@ -17,25 +17,11 @@ export async function SeedDB() {
             { name: 'Armor' },
         ]);
 
-        const [
-            alliance,
-            chaos,
-            elderryn,
-            genotia,
-            wastelands,
-        ] = await Origin.bulkCreate([
-            { name: 'Alliance', descriptor: 'Allied' },
-            { name: 'Chaos', descriptor: 'Chaotic' },
-            { name: 'Elderryn', descriptor: 'Elderryn' },
-            { name: 'Genotia', descriptor: 'Genotic' },
-            { name: 'Wastelands', descriptor: 'Wastelandic' },
-        ]);
-
         const nullChar = await User.create({
             id: 0,
             email: 'everything@thomassteinke.com',
             password: 'chaos',
-            origin: chaos,
+            origin: Origins.Chaos,
             AI: true,
         });
 
@@ -50,7 +36,7 @@ export async function SeedDB() {
                 id: 1,
                 email: 'test@thomassteinke.com',
                 password: 'test',
-                originId: alliance.id,
+                origin: Origins.Alliance,
             });
             tester.alias = await Alias.create({
                 name: 'Tester',
@@ -64,7 +50,7 @@ export async function SeedDB() {
                 id: 2,
                 email: 'exyphnos@gmail.com',
                 password: 'thomas',
-                originId: elderryn.id,
+                origin: Origins.Alliance,
             });
             thomas.alias = await Alias.create({
                 name: 'Thomas',

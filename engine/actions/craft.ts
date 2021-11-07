@@ -3,7 +3,6 @@ import { Error, Info, Pasta } from "../attachment";
 import { CraftController } from "../controller/crafting";
 import Item from "../models/item";
 import ItemType from "../models/item-type";
-import Origin from "../models/origin";
 import User from "../models/user";
 
 export async function craft(args: string[], user: User, channel: string) {
@@ -19,7 +18,7 @@ export async function craft(args: string[], user: User, channel: string) {
 
     const [existing] = await user.$get('crafting', {
         where: { complete: false, },
-        include: [ItemType, Origin],
+        include: [ItemType],
         limit: 1,
     });
     if (!existing) {

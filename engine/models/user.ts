@@ -10,11 +10,8 @@ import {
     BelongsToMany
 } from "sequelize-typescript";
 import {
-    BelongsToGetAssociationMixin,
     BelongsToManyGetAssociationsMixin,
     HasManyCreateAssociationMixin,
-    HasOneCreateAssociationMixin,
-    HasOneGetAssociationMixin
 } from "sequelize/types";
 import * as crypto from 'crypto';
 import Alias from "./alias";
@@ -22,10 +19,12 @@ import Item from "./item";
 import Fight from "./fight";
 import Fighting from "./fighting";
 import Crafting from "./crafting";
-import { ModelWithRandomId } from "../model-helpers";
-import Origin from "./origin";
+import { ModelWithIdAndOrigin } from "../model-helpers";
 import ItemTypeProficiency from "./item-type-proficiency";
 import ItemType from "./item-type";
+import { solar } from "../world/place/solar";
+import { Place } from "../world/place";
+import { World } from "../world/world";
 
 export interface UserInfo {
     id: number;
@@ -36,7 +35,7 @@ export interface UserInfo {
 }
 
 @Table
-export default class User extends ModelWithRandomId {
+export default class User extends ModelWithIdAndOrigin {
     @Column({
         type: DataType.STRING,
         allowNull: false,
@@ -49,12 +48,19 @@ export default class User extends ModelWithRandomId {
 
     @Column({
         type: DataType.STRING,
-        allowNull: false
+        allowNull: false,
+        get(this: User) {
+            return null;
+        },
+        set(this: User, value: string) {
+            this.setDataValue('salt', this.makeSalt());
+            this.setDataValue('password', this.encryptPassword(value));
+        },
     })
-    password!: string;
+    private password!: string;
 
     @Column(DataType.STRING)
-    salt?: string;
+    private readonly salt!: string;
 
     @Column({
         type: DataType.BOOLEAN,
@@ -80,8 +86,16 @@ export default class User extends ModelWithRandomId {
     })
     items?: Item[];
 
-    @BelongsTo(() => Origin, 'originId')
-    origin?: Origin;
+    @Column({
+        type: DataType.STRING,
+        get(this: User) {
+            return World.GetPlace(this.getDataValue('location'));
+        },
+        set(this: User, place: Place) {
+            this.setDataValue('location', place.id);
+        },
+    })
+    location: Place = solar;
 
     @BelongsToMany(() => ItemType, () => ItemTypeProficiency, 'userId', 'itemTypeId')
     itemTypeProficiencies?: ItemType[];
@@ -95,7 +109,6 @@ export default class User extends ModelWithRandomId {
 
     // Association methods
     getFights!: BelongsToManyGetAssociationsMixin<Fight>;
-    getOrigin!: BelongsToGetAssociationMixin<Origin>;
     createCrafting!: HasManyCreateAssociationMixin<Crafting>;
 
     // Getters
@@ -125,48 +138,8 @@ export default class User extends ModelWithRandomId {
         };
     };
 
-    //
-    // Hooks
-    //
-    @BeforeBulkCreate
-    static beforeBulkCreateHook(users: User[], options: any) {
-        return Promise.all(
-            users.map(user =>
-                user.updatePassword()
-            )
-        );
-    };
-
-    @BeforeCreate
-    static beforeCreateHook(user: User, options: any) {
-        return user.updatePassword();
-    };
-
-    @BeforeUpdate
-    static beforeUpdateHook(user: User, options: any) {
-        if (user.changed('password')) {
-            return user.updatePassword();
-        }
-    }
-
-    /*
-    say(message, type) {
-        if (Array.isArray(message) || typeof (message) === 'string') {
-            message = {
-                type: type,
-                md_text: message
-            };
-        }
-
-        return {
-            user_id: this._id,
-            attachments: [message]
-        };
-    };
-    */
-
     authenticate(password: string) {
-        return !this.AI && this.password === this.encryptPassword(password);
+        return !this.AI && this.getDataValue('password') === this.encryptPassword(password);
     };
 
     makeSalt(byteSize: number = 16) {
@@ -174,8 +147,6 @@ export default class User extends ModelWithRandomId {
     };
 
     encryptPassword(password: string) {
-        this.salt = this.salt ?? this.makeSalt();
-
         return crypto.pbkdf2Sync(
             password,
             this.salt,
@@ -183,13 +154,5 @@ export default class User extends ModelWithRandomId {
             64,
             'sha512',
         ).toString('base64');
-    };
-
-    updatePassword() {
-        // Handle new/update passwords
-        if (this.password) {
-            this.salt = this.makeSalt();
-            this.password = this.encryptPassword(this.password);
-        }
     };
 }

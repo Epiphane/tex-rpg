@@ -1,15 +1,13 @@
-import { BelongsTo, Column, DataType, DeletedAt, ForeignKey, HasMany, Model, Table } from "sequelize-typescript";
-import { BelongsToGetAssociationMixin, BelongsToSetAssociationMixin } from "sequelize/types";
+import { BelongsTo, Column, DataType, DeletedAt, HasMany, Table } from "sequelize-typescript";
 import { CraftingStats } from "../controller/crafting";
-import { ModelWithRandomId } from "../model-helpers";
+import { ModelWithIdAndOrigin } from "../model-helpers";
 import CraftingRecord from "./crafting-record";
 import CraftingTrait from "./crafting-trait";
 import ItemType from "./item-type";
-import Origin from "./origin";
 import User from "./user";
 
 @Table
-export default class Crafting extends ModelWithRandomId {
+export default class Crafting extends ModelWithIdAndOrigin {
     @Column({
         type: DataType.STRING,
         primaryKey: true,
@@ -39,9 +37,6 @@ export default class Crafting extends ModelWithRandomId {
 
     @HasMany(() => CraftingTrait, 'craftingId')
     traits?: CraftingTrait[];
-
-    @BelongsTo(() => Origin, 'originId')
-    origin?: Origin;
 
     @Column
     typeId?: number;

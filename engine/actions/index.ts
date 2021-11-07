@@ -16,11 +16,13 @@ export type ActionMap = { [key: string]: Action };
 import * as craft from "./craft";
 import * as help from "./help";
 import * as status from "./status";
+import * as world from "./world";
 
 export const Actions = {
     ...craft,
     ...help,
     ...status,
+    ...world,
 } as ActionMap;
 
 export const SortedActions = Object.keys(Actions)
