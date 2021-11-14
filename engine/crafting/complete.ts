@@ -1,4 +1,5 @@
-import { Pasta, Warning } from "../attachment";
+import { Warning } from "../attachment";
+import { Pasta } from "../helpers/lang";
 import Crafting from "../models/crafting";
 import { ItemStats } from "../models/item";
 import User from "../models/user";

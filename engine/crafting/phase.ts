@@ -11,7 +11,7 @@ export abstract class CraftingPhase {
         throw `Method not implemented.`;
     }
 
-    static async Prompt(user: User, crafting: Crafting): Promise<Attachment | undefined> {
+    static async Prompt(user: User, crafting: Crafting): Promise<Attachment> {
         throw `Method not implemented.`;
     }
 

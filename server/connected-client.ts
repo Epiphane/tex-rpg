@@ -7,6 +7,7 @@ import environment from './environment';
 import User, { UserInfo } from '../engine/models/user';
 import { Actions, SortedActions } from '../engine/actions';
 import { UserController } from '../engine/controller/user';
+import { Pasta } from '../engine/helpers/lang';
 
 type UserToken = UserInfo & jwt.JwtPayload;
 
@@ -179,7 +180,7 @@ export class ConnectedClient {
         else {
             this.send(new Attach(new A.Warning([
                 `'${action}' is not an available action.`,
-                `Type ${A.Pasta('help', true)} for the list of available actions.`
+                `Type ${Pasta('help', true)} for the list of available actions.`
             ])))
         }
     }
@@ -187,7 +188,7 @@ export class ConnectedClient {
     OnGetAvailableCommands() {
         this.send(new AvailableCommands(
             SortedActions
-                .map(cmd => Actions[cmd].format?.() ?? A.Pasta(cmd, true))
+                .map(cmd => Actions[cmd].shortFmt(this.user) ?? '')
                 .filter(line => !!line)
         ));
     }

@@ -1,10 +1,11 @@
 import { Op } from "sequelize";
-import { Info, One, Pasta, Warning, Error, Good } from "../attachment";
+import { Info, Warning, Error, Good } from "../attachment";
 import Crafting from "../models/crafting";
 import ItemType from "../models/item-type";
 import ItemTypeProficiency from "../models/item-type-proficiency";
 import User from "../models/user";
 import Phase from '../crafting';
+import { One, Pasta } from "../helpers/lang";
 
 export interface CraftingStats {
     level?: number;

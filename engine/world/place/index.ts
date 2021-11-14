@@ -1,7 +1,8 @@
-import { Pasta } from "../../attachment";
+import { Info, Warning } from "../../attachment";
 import User from "../../models/user";
 import { glob } from 'glob';
 import path = require("path");
+import { List, Pasta, Quantity, Sentence } from "../../helpers/lang";
 
 export enum Direction {
     None = 'none',
@@ -39,10 +40,51 @@ const Opposite: { [key in Direction]: Direction } = {
     [Direction.East]: Direction.West,
 }
 
+export interface NPCParams {
+    name: string;
+    count?: number;
+    desc: string | ((user: User) => string);
+}
+
+export class NPC {
+    name: string;
+    count: number;
+    private desc: (user: User) => string;
+
+    constructor({
+        name,
+        count,
+        desc
+    }: NPCParams) {
+        this.name = name;
+        this.count = count ?? 1;
+
+        if (typeof (desc) === 'string') {
+            const str = desc;
+            desc = () => str;
+        }
+        this.desc = desc;
+    }
+
+    matches(str: string) {
+        const regex = new RegExp(`\\b${str}\\b`);
+        return Boolean(this.name.toLowerCase().match(regex));
+    }
+
+    look(user: User) {
+        return new Info([
+            `\`${Sentence(this.name)}\``,
+            ``,
+            ...this.desc(user).split('\n')
+        ]);
+    }
+}
+
 export interface PlaceParams {
     id: string;
     name: string;
     desc: string | ((user: User) => string);
+    objects?: (NPCParams | NPC)[];
 }
 
 export class Place {
@@ -53,10 +95,13 @@ export class Place {
         [key in Direction]?: Place;
     } = {};
 
+    private objects: NPC[] = [];
+
     constructor({
         id,
         name,
         desc,
+        objects,
     }: PlaceParams) {
         this.id = id;
         this.name = name;
@@ -66,6 +111,14 @@ export class Place {
             desc = () => str;
         }
         this.desc = desc;
+
+        objects?.forEach(npc =>
+            this.objects.push(
+                (npc instanceof NPC)
+                    ? npc
+                    : new NPC(npc)
+            )
+        );
     }
 
     Connect(direction: Direction, other: Place, otherDirection?: Direction) {
@@ -88,40 +141,59 @@ export class Place {
         return this.neighbors[direction];
     }
 
-    describe(user: User) {
-        return [
-            this.desc(user),
+    look(user: User) {
+        return new Info([
+            `\`${this.name}\``,
             ``,
+            ...this.desc(user).trim().split('\n').map(line => line.trim()),
+            ...this.describeNpcs(user),
             ...this.describeNeighbors(),
-        ];
+        ]);
     }
 
-    describeNeighbors() {
-        const descriptions = [];
-        for (const dir in this.neighbors) {
-            const { name } = this.neighbors[dir as Direction]!;
-            const phraser = DirectionPhrases[dir as Direction];
-            descriptions.push(phraser(name));
+    lookAt(name: string, user: User) {
+        const matches = this.objects.filter(obj => obj.matches(name));
+        if (matches.length === 0) {
+            return new Warning(`Cannot find \`${name}\``);
         }
+        else if (matches.length === 1) {
+            return matches[0].look(user);
+        }
+        else {
+            return new Warning(`\`${name}\` is ambiguous. Please be more specific.`);
+        }
+    }
 
-        if (descriptions.length === 0) {
+    describeNpcs(user: User) {
+        if (this.objects.length === 0) {
             return [];
         }
 
-        descriptions[0] =
-            descriptions[0].charAt(0).toUpperCase() +
-            descriptions[0].substr(1);
+        return [
+            ``,
+            List(this.objects.map(object =>
+                `You see ${Quantity(
+                    Pasta(`look ${object.name}`, true, object.name),
+                    object.count
+                )}`)
+            )
+        ]
+    }
 
-        if (descriptions.length === 1) {
-            return descriptions;
-        }
+    describeNeighbors() {
+        const descriptions = Object.keys(this.neighbors)
+            .map(dir => {
+                const { name } = this.neighbors[dir as Direction]!;
+                const phraser = DirectionPhrases[dir as Direction];
+                return phraser(name);
+            });
 
-        descriptions[descriptions.length - 1] = `and ${descriptions[descriptions.length - 1]}`;
-        if (descriptions.length === 2) {
-            return [descriptions.join(' ')];
+        const result = List(descriptions);
+        if (result === '') {
+            return []
         }
         else {
-            return [descriptions.join(', ')];
+            return ['', Sentence(result)];
         }
     }
 }

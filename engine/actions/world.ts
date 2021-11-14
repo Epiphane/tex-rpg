@@ -1,42 +1,72 @@
-import { Error, Info } from "../attachment";
+import { MakeAction, MakeAlias } from ".";
+import { Error, Info, Warning } from "../attachment";
 import User from "../models/user";
 import { Direction } from "../world/place";
 import { World } from "../world/world";
 
-export async function look(args: string[], user: User, channel: string) {
-    const { location } = user;
+export const look = MakeAction({
+    priority: 10,
+    description: 'Look at your surroundings.',
+    fn(args: string[], user) {
+        if (!user) {
+            return new Warning('You are not logged in');
+        }
 
-    return new Info([
-        `\`${location.name}\``,
-        ``,
-        ...location.describe(user),
-    ]);
-}
+        const { location } = user;
+        if (args.length === 0) {
+            return location.look(user);
+        }
+        else {
+            return location.lookAt(args.join(' '), user);
+        }
+    },
+});
 
-export async function move([dir]: string[], user: User, channel: string) {
-    const { location } = user;
-    const neighbor = location.getNeighbor(dir as Direction);
+export const where = MakeAlias(look);
 
-    if (!neighbor) {
-        return new Error(`There is nothing this way!`);
-    }
+export const move = MakeAction({
+    async fn([dir], user, channel) {
+        if (!user) {
+            return new Warning('You are not logged in');
+        }
 
-    await user.update({ location: neighbor.id });
-    return new Info(neighbor.describe(user));
-}
+        const { location } = user;
+        const neighbor = location.getNeighbor(dir as Direction);
 
-export async function north(args: string[], user: User, channel: string) {
-    return move([Direction.North, ...args], user, channel);
-}
+        if (!neighbor) {
+            return new Error(`There is nothing this way!`);
+        }
 
-export async function south(args: string[], user: User, channel: string) {
-    return move([Direction.South, ...args], user, channel);
-}
+        await user.update({ location: neighbor.id });
+        return neighbor.look(user);
+    },
+});
 
-export async function west(args: string[], user: User, channel: string) {
-    return move([Direction.West, ...args], user, channel);
-}
+export const north = MakeAction({
+    hidden: true,
+    fn(args, user, channel) {
+        return move([Direction.North, ...args], user, channel);
+    },
+});
 
-export async function east(args: string[], user: User, channel: string) {
-    return move([Direction.East, ...args], user, channel);
-}
+export const south = MakeAction({
+    hidden: true,
+    fn(args, user, channel) {
+        return move([Direction.South, ...args], user, channel);
+    },
+});
+
+
+export const west = MakeAction({
+    hidden: true,
+    fn(args, user, channel) {
+        return move([Direction.West, ...args], user, channel);
+    },
+});
+
+export const east = MakeAction({
+    hidden: true,
+    fn(args, user, channel) {
+        return move([Direction.East, ...args], user, channel);
+    },
+});

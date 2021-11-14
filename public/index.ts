@@ -8,6 +8,9 @@ import { TextareaEditor } from "@textcomplete/textarea";
 
 const content = document.getElementById('content')!;
 const history = document.getElementById('history')!;
+const autotype = document.getElementById('autotype') as HTMLInputElement;
+
+autotype.value = localStorage.getItem('autotype') ?? '';
 
 declare global {
     interface String {
@@ -34,7 +37,7 @@ class Input {
     data = document.getElementById('command') as HTMLTextAreaElement;
     div = document.getElementById('input-display');
     commands = document.getElementById('commands');
-    value = '';
+    value = localStorage.getItem('cmd') ?? '';
     isPassword = false;
 
     confirm = false;
@@ -92,6 +95,9 @@ class Input {
 
         game.on(ServerResponse.CurrentUser, ({ user }) => {
             this.insertAttachment(new A.Small(`Welcome back, ${user.tag}.`));
+            if (autotype.value !== '') {
+                this.enter(autotype.value);
+            }
             return false;
         });
 
@@ -111,6 +117,7 @@ class Input {
         });
 
         this.setupAutoComplete();
+        this.set(localStorage.getItem('cmd') ?? '');
     }
 
     setupAutoComplete() {
@@ -126,7 +133,7 @@ class Input {
         const editor = new TextareaEditor(this.data);
 
         // Don't gotta clean this up cause it never goes away~
-        const textcomplete = new Textcomplete(editor, [
+        new Textcomplete(editor, [
             {
                 match: /\B@(\w{2,})$/,
                 search: (term: string, callback: (results: string[]) => void) => {
@@ -146,8 +153,11 @@ class Input {
             }
         })
 
-        this.data.onblur = () => this.data.focus();
+        // this.data.onblur = () => {
+        //     this.data.focus();
+        // }
         this.data.focus();
+        content.onclick = () => this.data.focus();
 
         this.data.oninput =
             this.data.onkeydown =
@@ -176,11 +186,14 @@ class Input {
                     return false;
                 }
             }
+
+            localStorage.setItem('autotype', autotype.value);
         };
     }
 
     update() {
         this.value = this.data.value;
+        localStorage.setItem('cmd', this.value);
 
         let display = this.value;
         if (this.isPassword) {
@@ -220,7 +233,6 @@ class Input {
     };
 
     add(str: string) {
-        this.data.value += str;
         this.set(this.value + str);
     };
 
@@ -252,7 +264,8 @@ class Input {
         localStorage.setItem('log', JSON.stringify(this.log));
     };
 
-    enter() {
+    enter(value?: string) {
+        value = value ?? this.value;
         if (!this.confirm && !this.isPassword) {
             this.addToLog();
         }
@@ -260,7 +273,7 @@ class Input {
         const record = document.createElement('div');
         record.classList.add('record');
 
-        let command = this.value;
+        let command = value;
         if (this.isPassword) {
             command = (new Array(command.length + 1)).join('*');
         }
@@ -280,12 +293,12 @@ class Input {
             }
         }
         else if (this.confirm && !this.confirmCheck) {
-            this.confirmCheck = this.value;
+            this.confirmCheck = value;
             this.insertAttachment(new A.Small('Please enter it again to confirm.'));
         }
         else if (this.confirm && this.confirmCheck) {
-            if (this.value === this.confirmCheck) {
-                this.game.send(new Action.Command(this.value));
+            if (value === this.confirmCheck) {
+                this.game.send(new Action.Command(value));
                 this.setPassword(false);
                 this.confirm = false;
             }
@@ -298,25 +311,23 @@ class Input {
         }
         else if (!this.game.isLoggedIn()) {
             if (!this.pendingEmail) {
-                this.pendingEmail = this.value;
+                this.pendingEmail = value;
 
                 this.insertAttachment(new A.Small('Password:'));
                 this.setPassword(true);
             }
             else {
                 this.triedToAuth = true;
-                this.game.send(new Action.Login(this.pendingEmail, this.value));
+                this.game.send(new Action.Login(this.pendingEmail, value));
                 this.pendingEmail = undefined;
             }
         }
         else if (!this.confirm) {
-            this.game.send(new Action.Command(this.value));
+            this.game.send(new Action.Command(value));
         }
 
         // Update mentions
         // var str = this.str.replace(/\B@(\w*)/g, function (str, tag) { return game.toTag(tag); }).toLowerCase();
-
-        this.set('');
         content.scrollTo(0, content.scrollHeight);
     };
 
@@ -373,8 +384,7 @@ class Input {
 
                 const content = command ?? text;
                 if (pasta.classList.contains('execute')) {
-                    this.set(content);
-                    this.enter();
+                    this.enter(content);
                 }
                 else {
                     if (this.value.length > 0 && this.value[this.value.length - 1] !== ' ') {
@@ -396,22 +406,6 @@ class Input {
 {
     const game = new Game();
     const input = new Input(game);
-
-    // socket.on('attachment', function (attachment) {
-    //     input.insertAttachment(attachment);
-    // });
-
-    // socket.on('attachments', function (attachments) {
-    //     input.insertAttachments(attachments);
-    // });
-
-    // socket.on('password', function () {
-    //     input.setPassword(true);
-    // });
-
-    // socket.on('confirm', function () {
-    //     input.setConfirm(true);
-    // });
 
     // Connect
     const socket = new WebSocket(`ws://${window.location.host}`);

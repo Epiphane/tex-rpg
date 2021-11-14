@@ -24,8 +24,6 @@ glob.sync(`${__dirname}/place/*`)
         }
     });
 
-console.log(Places);
-
 export class World {
     static GetPlace(name: string): Place {
         if (!Places[name]) {

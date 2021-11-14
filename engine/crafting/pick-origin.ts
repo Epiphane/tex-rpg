@@ -1,7 +1,7 @@
-import { Pasta, Warning } from "../attachment";
+import { Warning } from "../attachment";
+import { Pasta } from "../helpers/lang";
 import Crafting from "../models/crafting";
 import User from "../models/user";
-import { Origin } from "../origins";
 import { CraftingPhase } from "./phase";
 
 export default class PickOrigin extends CraftingPhase {
@@ -35,15 +35,17 @@ export default class PickOrigin extends CraftingPhase {
 
     static async Prompt(user: User, crafting: Crafting) {
         const { origin } = crafting;
-        if (!origin) {
-            const origins = await this.GetAvailableOrigins(user, crafting);
-            return new Warning([
-                `Choose an environment of origin:`,
-                ...origins.map(origin =>
-                    `- ${Pasta(`craft ${origin.name.toLowerCase()}`, true)}`
-                ),
-            ]);
+        if (origin) {
+            throw `Unexpected error, code=0601`
         }
+
+        const origins = await this.GetAvailableOrigins(user, crafting);
+        return new Warning([
+            `Choose an environment of origin:`,
+            ...origins.map(origin =>
+                `- ${Pasta(`craft ${origin.name.toLowerCase()}`, true)}`
+            ),
+        ]);
     }
 
     static async GetStatus(user: User, crafting: Crafting) {
