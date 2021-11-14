@@ -4,11 +4,11 @@ import User from "../../models/user";
 const inscription = new NPC({
     name: 'inscription in the stars',
     desc() {
-        return `The stars flit to and fro, spelling a message across your mind:
-        
-        "Something deep"
-        
-        The words pervade your mind, `;
+        return `The stars flit to and fro, writing a message across your mind:
+
+        Who are you?
+
+        The words pervade your mind, prodding for answers`;
     }
 })
 
