@@ -192,6 +192,8 @@ class Input {
     }
 
     update() {
+        // console.log(this.data.value);
+        // console.log(this.value);
         this.value = this.data.value;
         localStorage.setItem('cmd', this.value);
 
@@ -265,7 +267,10 @@ class Input {
     };
 
     enter(value?: string) {
-        value = value ?? this.value;
+        if (!value) {
+            value = this.value;
+            this.data.value = '';
+        }
         if (!this.confirm && !this.isPassword) {
             this.addToLog();
         }
@@ -329,6 +334,7 @@ class Input {
         // Update mentions
         // var str = this.str.replace(/\B@(\w*)/g, function (str, tag) { return game.toTag(tag); }).toLowerCase();
         content.scrollTo(0, content.scrollHeight);
+        this.update();
     };
 
     setPassword(isPassword: boolean) {

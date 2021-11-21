@@ -43,13 +43,13 @@ const Opposite: { [key in Direction]: Direction } = {
 export interface NPCParams {
     name: string;
     count?: number;
-    desc: string | ((user: User) => string);
+    desc: string | ((user: User) => Promise<string> | string);
 }
 
 export class NPC {
     name: string;
     count: number;
-    private desc: (user: User) => string;
+    private desc: (user: User) => Promise<string> | string;
 
     constructor({
         name,
@@ -71,11 +71,12 @@ export class NPC {
         return Boolean(this.name.toLowerCase().match(regex));
     }
 
-    look(user: User) {
+    async look(user: User) {
+        const desc = await this.desc(user);
         return new Info([
             `\`${Sentence(this.name)}\``,
             ``,
-            ...this.desc(user).split('\n')
+            ...desc.split('\n')
         ]);
     }
 }
@@ -83,14 +84,14 @@ export class NPC {
 export interface PlaceParams {
     id: string;
     name: string;
-    desc: string | ((user: User) => string);
+    desc: string | ((user: User) => Promise<string> | string);
     objects?: (NPCParams | NPC)[];
 }
 
-export class Place {
+export class Place2 {
     id: string;
     name: string;
-    private desc: (user: User) => string;
+    private desc: (user: User) => Promise<string> | string;
     private neighbors: {
         [key in Direction]?: Place;
     } = {};
@@ -141,11 +142,12 @@ export class Place {
         return this.neighbors[direction];
     }
 
-    look(user: User) {
+    async look(user: User) {
+        const desc = await this.desc(user);
         return new Info([
             `\`${this.name}\``,
             ``,
-            ...this.desc(user).trim().split('\n').map(line => line.trim()),
+            ...desc.trim().split('\n').map(line => line.trim()),
             ...this.describeNpcs(user),
             ...this.describeNeighbors(),
         ]);
@@ -171,12 +173,119 @@ export class Place {
 
         return [
             ``,
-            List(this.objects.map(object =>
-                `You see ${Quantity(
+            `You see ${List(this.objects.map(object =>
+                Quantity(
                     Pasta(`look ${object.name}`, true, object.name),
                     object.count
-                )}`)
-            )
+                )
+            ))}.`,
+        ]
+    }
+
+    describeNeighbors() {
+        const descriptions = Object.keys(this.neighbors)
+            .map(dir => {
+                const { name } = this.neighbors[dir as Direction]!;
+                const phraser = DirectionPhrases[dir as Direction];
+                return phraser(name);
+            });
+
+        const result = List(descriptions);
+        if (result === '') {
+            return []
+        }
+        else {
+            return ['', Sentence(result)];
+        }
+    }
+}
+
+export abstract class Place {
+    id: string;
+    name: string;
+    // private desc: (user: User) => Promise<string> | string;
+    private neighbors: {
+        [key in Direction]?: Place;
+    } = {};
+
+    private objects: NPC[] = [];
+
+    constructor() {
+        // this.id = id;
+        // this.name = name;
+
+        // if (typeof (desc) === 'string') {
+        //     const str = desc;
+        //     desc = () => str;
+        // }
+        // this.desc = desc;
+
+        // objects?.forEach(npc =>
+        //     this.objects.push(
+        //         (npc instanceof NPC)
+        //             ? npc
+        //             : new NPC(npc)
+        //     )
+        // );
+    }
+
+    Connect(direction: Direction, other: Place, otherDirection?: Direction) {
+        if (!otherDirection) {
+            otherDirection = Opposite[direction];
+        }
+
+        if (direction === Direction.None) {
+            throw `Invalid neighbor direction`;
+        }
+
+        this.neighbors[direction] = other;
+
+        if (otherDirection !== Direction.None) {
+            other.neighbors[otherDirection] = this;
+        }
+    }
+
+    getNeighbor(direction: Direction) {
+        return this.neighbors[direction];
+    }
+
+    async look(user: User) {
+        const desc = await this.desc(user);
+        return new Info([
+            `\`${this.name}\``,
+            ``,
+            ...desc.trim().split('\n').map(line => line.trim()),
+            ...this.describeNpcs(user),
+            ...this.describeNeighbors(),
+        ]);
+    }
+
+    lookAt(name: string, user: User) {
+        const matches = this.objects.filter(obj => obj.matches(name));
+        if (matches.length === 0) {
+            return new Warning(`Cannot find \`${name}\``);
+        }
+        else if (matches.length === 1) {
+            return matches[0].look(user);
+        }
+        else {
+            return new Warning(`\`${name}\` is ambiguous. Please be more specific.`);
+        }
+    }
+
+    describeNpcs(user: User) {
+        if (this.objects.length === 0) {
+            return [];
+        }
+
+        return [
+            ``,
+            `You see ${List(this.objects.map(object =>
+                Quantity(
+                    Pasta(`look ${object.name}`, true, object.name),
+                    object.count
+                )
+            ))}.`,
         ]
     }
 

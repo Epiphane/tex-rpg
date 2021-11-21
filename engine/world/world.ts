@@ -21,6 +21,16 @@ glob.sync(`${__dirname}/place/*`)
             if (module[key] instanceof Place) {
                 Places[module[key].id] = module[key];
             }
+            else if (module[key] instanceof Place.constructor) {
+                Places[module[key].id] = new module[key]();
+            }
+            else {
+                console.log();
+                console.log(key);
+                console.log(module[key]);
+                console.log(module[key] instanceof Place.constructor);
+                console.log(module[key] instanceof Place.constructor);
+            }
         }
     });
 

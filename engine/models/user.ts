@@ -25,6 +25,7 @@ import ItemType from "./item-type";
 import { solar } from "../world/place/solar";
 import { Place } from "../world/place";
 import { World } from "../world/world";
+import UserProp from "./user-prop";
 
 export interface UserInfo {
     id: number;
@@ -68,6 +69,9 @@ export default class User extends ModelWithIdAndOrigin {
     })
     AI: boolean = false;
 
+    @HasMany(() => UserProp, 'userId')
+    props?: UserProp[];
+
     @HasMany(() => Alias, 'userId')
     aliases?: Alias[];
 
@@ -109,7 +113,10 @@ export default class User extends ModelWithIdAndOrigin {
 
     // Association methods
     getFights!: BelongsToManyGetAssociationsMixin<Fight>;
-    createCrafting!: HasManyCreateAssociationMixin<Crafting>;
+
+    // Arbitrary properties
+    @Column
+    p_solarHasSeenInscription: boolean = false;
 
     // Getters
     get tag() {
